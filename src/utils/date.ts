@@ -1,5 +1,18 @@
+/**
+ * Formats a Date as a local YYYY-MM-DD calendar date. Deliberately avoids
+ * `toISOString()`, which converts to UTC first and silently shifts the
+ * calendar date by one day for anyone in a positive UTC-offset timezone
+ * (most of Asia-Pacific) around local midnight.
+ */
+export function toLocalIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalIsoDate(new Date());
 }
 
 export function greetingForHour(hour: number): string {

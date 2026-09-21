@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,7 +13,9 @@ import Animated, {
 import { Card, Icon, Text } from '@/components/ui';
 import { useAppTheme, type ColorToken } from '@/theme';
 import type { Task } from '@/domain/entities/task';
-import { formatTime12h } from '@/utils/date';
+import { formatTime12h, todayIso } from '@/utils/date';
+
+import { useArchiveTask, useDeleteTask } from './hooks';
 
 interface TaskListItemProps {
   task: Task;
@@ -52,8 +56,33 @@ function AnimatedCheckbox({ checked }: { checked: boolean }) {
   );
 }
 
+function SwipeAction({
+  icon,
+  color,
+  onPress,
+}: {
+  icon: 'archive' | 'trash-2';
+  color: ColorToken;
+  onPress: () => void;
+}) {
+  const theme = useAppTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={icon === 'archive' ? 'Archive task' : 'Delete task'}
+      style={[styles.swipeAction, { backgroundColor: theme.colors[color] }]}
+    >
+      <Icon name={icon} size={18} color={theme.colors.onPrimary} />
+    </Pressable>
+  );
+}
+
 export function TaskListItem({ task, onToggle }: TaskListItemProps) {
   const theme = useAppTheme();
+  const router = useRouter();
+  const archiveTask = useArchiveTask();
+  const deleteTask = useDeleteTask();
   const time = formatTime12h(task.dueTime);
 
   const handleToggle = () => {
@@ -70,48 +99,61 @@ export function TaskListItem({ task, onToggle }: TaskListItemProps) {
   }));
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.row}>
-        <Pressable
-          onPress={handleToggle}
-          accessibilityRole="checkbox"
-          accessibilityLabel={task.title}
-          accessibilityState={{ checked: task.isCompleted }}
-          hitSlop={8}
-        >
-          <AnimatedCheckbox checked={task.isCompleted} />
-        </Pressable>
-
-        <Animated.View style={[styles.body, rowOpacity]}>
-          <Text
-            variant="titleMedium"
-            style={task.isCompleted ? styles.strikethrough : undefined}
-            numberOfLines={2}
+    <Swipeable
+      containerStyle={styles.swipeContainer}
+      renderRightActions={() => (
+        <View style={styles.swipeActions}>
+          <SwipeAction icon="archive" color="warning" onPress={() => archiveTask.mutate({ id: task.id, isArchived: true })} />
+          <SwipeAction icon="trash-2" color="error" onPress={() => deleteTask.mutate(task.id)} />
+        </View>
+      )}
+    >
+      <Card style={styles.card} onPress={() => router.push(`/task/${task.id}`)} accessibilityLabel={task.title}>
+        <View style={styles.row}>
+          <Pressable
+            onPress={handleToggle}
+            accessibilityRole="checkbox"
+            accessibilityLabel={task.title}
+            accessibilityState={{ checked: task.isCompleted }}
+            hitSlop={8}
           >
-            {task.title}
-          </Text>
-          {(task.dueDate || time) && (
-            <Text variant="bodySmall" color="textSecondary">
-              {task.dueDate === new Date().toISOString().slice(0, 10) ? 'Today' : task.dueDate}
-              {time ? ` · ${time}` : ''}
-            </Text>
-          )}
-        </Animated.View>
+            <AnimatedCheckbox checked={task.isCompleted} />
+          </Pressable>
 
-        <View
-          style={[
-            styles.priorityDot,
-            { backgroundColor: theme.colors[priorityColor[task.priority]] },
-          ]}
-        />
-      </View>
-    </Card>
+          <Animated.View style={[styles.body, rowOpacity]}>
+            <Text
+              variant="titleMedium"
+              style={task.isCompleted ? styles.strikethrough : undefined}
+              numberOfLines={2}
+            >
+              {task.title}
+            </Text>
+            {(task.dueDate || time) && (
+              <Text variant="bodySmall" color="textSecondary">
+                {task.dueDate === todayIso() ? 'Today' : task.dueDate}
+                {time ? ` · ${time}` : ''}
+              </Text>
+            )}
+          </Animated.View>
+
+          <View
+            style={[
+              styles.priorityDot,
+              { backgroundColor: theme.colors[priorityColor[task.priority]] },
+            ]}
+          />
+        </View>
+      </Card>
+    </Swipeable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  swipeContainer: {
     marginBottom: 10,
+  },
+  card: {
+    marginBottom: 0,
   },
   row: {
     flexDirection: 'row',
@@ -136,5 +178,17 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  swipeActions: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+    marginLeft: 8,
+  },
+  swipeAction: {
+    width: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

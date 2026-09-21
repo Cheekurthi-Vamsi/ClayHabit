@@ -1,20 +1,30 @@
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EmptyState, IconButton, Skeleton, Text } from '@/components/ui';
+import { Chip, EmptyState, IconButton, Skeleton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 import type { Task } from '@/domain/entities/task';
 
-import { useAllTasks, useToggleTask } from './hooks';
+import { useAllTasks, useProjects, useToggleTask } from './hooks';
 import { TaskListItem } from './task-list-item';
 
 export function TaskListScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { data: tasks, isLoading } = useAllTasks();
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
+  const [showCompleted, setShowCompleted] = useState(true);
+
+  const { data: tasks, isLoading } = useAllTasks(projectId);
+  const { data: projects } = useProjects();
   const toggleTask = useToggleTask();
+
+  const visibleTasks = useMemo(
+    () => (tasks ?? []).filter((task) => showCompleted || !task.isCompleted),
+    [tasks, showCompleted],
+  );
 
   const handleToggle = (task: Task) => {
     toggleTask.mutate({ id: task.id, isCompleted: !task.isCompleted });
@@ -32,6 +42,28 @@ export function TaskListScreen() {
         />
       </View>
 
+      {(projects?.length ?? 0) > 0 && (
+        <View style={styles.filterRow}>
+          <Chip label="All projects" selected={!projectId} onPress={() => setProjectId(undefined)} />
+          {projects!.map((project) => (
+            <Chip
+              key={project.id}
+              label={project.name}
+              selected={projectId === project.id}
+              onPress={() => setProjectId(project.id)}
+            />
+          ))}
+        </View>
+      )}
+
+      <View style={styles.filterRow}>
+        <Chip
+          label={showCompleted ? 'Hide completed' : 'Show completed'}
+          icon={showCompleted ? 'eye-off' : 'eye'}
+          onPress={() => setShowCompleted((prev) => !prev)}
+        />
+      </View>
+
       {isLoading ? (
         <View style={styles.list}>
           <Skeleton height={64} radius={theme.radii.lg} />
@@ -42,7 +74,7 @@ export function TaskListScreen() {
         </View>
       ) : (
         <FlatList
-          data={tasks ?? []}
+          data={visibleTasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.list,
@@ -72,6 +104,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   list: {
     paddingHorizontal: 20,

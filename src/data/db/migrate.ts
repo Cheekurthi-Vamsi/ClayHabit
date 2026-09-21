@@ -5,6 +5,10 @@ import { migrations } from './migrations';
 export const DATABASE_NAME = 'clayhabit.db';
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
+  // foreign_keys is a per-connection setting, not persisted in the db file,
+  // so it must be re-applied on every launch (not just inside a migration).
+  await db.execAsync('PRAGMA foreign_keys = ON;');
+
   const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let currentVersion = result?.user_version ?? 0;
 

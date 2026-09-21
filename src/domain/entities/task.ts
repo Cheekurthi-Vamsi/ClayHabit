@@ -1,4 +1,9 @@
+import type { Project } from './project';
+import type { Subtask } from './subtask';
+import type { Tag } from './tag';
+
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type RepeatRule = 'daily' | 'weekdays' | 'weekly';
 
 export interface Task {
   id: string;
@@ -8,10 +13,19 @@ export interface Task {
   dueTime: string | null;
   priority: TaskPriority;
   projectId: string | null;
+  repeatRule: RepeatRule | null;
+  estimatedMinutes: number | null;
+  isArchived: boolean;
   isCompleted: boolean;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TaskWithDetails extends Task {
+  project: Project | null;
+  tags: Tag[];
+  subtasks: Subtask[];
 }
 
 export interface NewTaskInput {
@@ -20,4 +34,19 @@ export interface NewTaskInput {
   dueDate?: string | null;
   dueTime?: string | null;
   priority?: TaskPriority;
+  projectId?: string | null;
+  repeatRule?: RepeatRule | null;
+  estimatedMinutes?: number | null;
+  tagIds?: string[];
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string | null;
+  dueDate?: string | null;
+  dueTime?: string | null;
+  priority?: TaskPriority;
+  projectId?: string | null;
+  repeatRule?: RepeatRule | null;
+  estimatedMinutes?: number | null;
 }

@@ -1,7 +1,20 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { NewTaskInput, Task, TaskPriority } from '@/domain/entities/task';
+import type {
+  NewTaskInput,
+  RepeatRule,
+  Task,
+  TaskPriority,
+  TaskWithDetails,
+  UpdateTaskInput,
+} from '@/domain/entities/task';
+import { nextOccurrence } from '@/domain/services/recurrence';
+import { todayIso } from '@/utils/date';
 import { generateId } from '@/utils/id';
+
+import * as projectRepository from './project-repository';
+import * as tagRepository from './tag-repository';
+import * as subtaskRepository from './subtask-repository';
 
 interface TaskRow {
   id: string;
@@ -11,6 +24,9 @@ interface TaskRow {
   due_time: string | null;
   priority: TaskPriority;
   project_id: string | null;
+  repeat_rule: RepeatRule | null;
+  estimated_minutes: number | null;
+  is_archived: number;
   is_completed: number;
   completed_at: string | null;
   created_at: string;
@@ -26,6 +42,9 @@ function toTask(row: TaskRow): Task {
     dueTime: row.due_time,
     priority: row.priority,
     projectId: row.project_id,
+    repeatRule: row.repeat_rule,
+    estimatedMinutes: row.estimated_minutes,
+    isArchived: row.is_archived === 1,
     isCompleted: row.is_completed === 1,
     completedAt: row.completed_at,
     createdAt: row.created_at,
@@ -36,17 +55,32 @@ function toTask(row: TaskRow): Task {
 export async function listToday(db: SQLiteDatabase, todayIso: string): Promise<Task[]> {
   const rows = await db.getAllAsync<TaskRow>(
     `SELECT * FROM tasks
-     WHERE (due_date = ? OR due_date IS NULL)
+     WHERE is_archived = 0 AND (due_date = ? OR due_date IS NULL)
      ORDER BY is_completed ASC, priority = 'urgent' DESC, priority = 'high' DESC, due_time ASC, created_at ASC`,
     todayIso,
   );
   return rows.map(toTask);
 }
 
-export async function listAll(db: SQLiteDatabase): Promise<Task[]> {
+interface ListAllOptions {
+  projectId?: string;
+  includeArchived?: boolean;
+}
+
+export async function listAll(db: SQLiteDatabase, options: ListAllOptions = {}): Promise<Task[]> {
+  const conditions = [options.includeArchived ? '1=1' : 'is_archived = 0'];
+  const params: string[] = [];
+
+  if (options.projectId) {
+    conditions.push('project_id = ?');
+    params.push(options.projectId);
+  }
+
   const rows = await db.getAllAsync<TaskRow>(
     `SELECT * FROM tasks
+     WHERE ${conditions.join(' AND ')}
      ORDER BY is_completed ASC, due_date IS NULL, due_date ASC, created_at DESC`,
+    ...params,
   );
   return rows.map(toTask);
 }
@@ -56,23 +90,87 @@ export async function countTable(db: SQLiteDatabase): Promise<number> {
   return row?.count ?? 0;
 }
 
+export async function getById(db: SQLiteDatabase, id: string): Promise<Task | null> {
+  const row = await db.getFirstAsync<TaskRow>('SELECT * FROM tasks WHERE id = ?', id);
+  return row ? toTask(row) : null;
+}
+
+export async function getWithDetails(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<TaskWithDetails | null> {
+  const task = await getById(db, id);
+  if (!task) return null;
+
+  const [projects, tags, subtasks] = await Promise.all([
+    task.projectId ? projectRepository.listAll(db) : Promise.resolve([]),
+    tagRepository.listForTask(db, id),
+    subtaskRepository.listForTask(db, id),
+  ]);
+
+  const project = task.projectId ? (projects.find((p) => p.id === task.projectId) ?? null) : null;
+
+  return { ...task, project, tags, subtasks };
+}
+
+async function insertTaskRow(
+  db: SQLiteDatabase,
+  values: {
+    id: string;
+    title: string;
+    description: string | null;
+    dueDate: string | null;
+    dueTime: string | null;
+    priority: TaskPriority;
+    projectId: string | null;
+    repeatRule: RepeatRule | null;
+    estimatedMinutes: number | null;
+    createdAt: string;
+    updatedAt: string;
+  },
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO tasks (
+       id, title, description, due_date, due_time, priority, project_id,
+       repeat_rule, estimated_minutes, is_archived, is_completed, completed_at,
+       created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, ?, ?)`,
+    values.id,
+    values.title,
+    values.description,
+    values.dueDate,
+    values.dueTime,
+    values.priority,
+    values.projectId,
+    values.repeatRule,
+    values.estimatedMinutes,
+    values.createdAt,
+    values.updatedAt,
+  );
+}
+
 export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<Task> {
   const id = generateId();
   const now = new Date().toISOString();
   const priority: TaskPriority = input.priority ?? 'medium';
 
-  await db.runAsync(
-    `INSERT INTO tasks (id, title, description, due_date, due_time, priority, project_id, is_completed, completed_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, NULL, 0, NULL, ?, ?)`,
+  await insertTaskRow(db, {
     id,
-    input.title.trim(),
-    input.description ?? null,
-    input.dueDate ?? null,
-    input.dueTime ?? null,
+    title: input.title.trim(),
+    description: input.description ?? null,
+    dueDate: input.dueDate ?? null,
+    dueTime: input.dueTime ?? null,
     priority,
-    now,
-    now,
-  );
+    projectId: input.projectId ?? null,
+    repeatRule: input.repeatRule ?? null,
+    estimatedMinutes: input.estimatedMinutes ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  if (input.tagIds?.length) {
+    await tagRepository.setTagsForTask(db, id, input.tagIds);
+  }
 
   return {
     id,
@@ -81,12 +179,59 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     dueDate: input.dueDate ?? null,
     dueTime: input.dueTime ?? null,
     priority,
-    projectId: null,
+    projectId: input.projectId ?? null,
+    repeatRule: input.repeatRule ?? null,
+    estimatedMinutes: input.estimatedMinutes ?? null,
+    isArchived: false,
     isCompleted: false,
     completedAt: null,
     createdAt: now,
     updatedAt: now,
   };
+}
+
+export async function update(
+  db: SQLiteDatabase,
+  id: string,
+  input: UpdateTaskInput,
+): Promise<void> {
+  const existing = await getById(db, id);
+  if (!existing) return;
+
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `UPDATE tasks SET
+       title = ?, description = ?, due_date = ?, due_time = ?, priority = ?,
+       project_id = ?, repeat_rule = ?, estimated_minutes = ?, updated_at = ?
+     WHERE id = ?`,
+    input.title?.trim() ?? existing.title,
+    input.description !== undefined ? input.description : existing.description,
+    input.dueDate !== undefined ? input.dueDate : existing.dueDate,
+    input.dueTime !== undefined ? input.dueTime : existing.dueTime,
+    input.priority ?? existing.priority,
+    input.projectId !== undefined ? input.projectId : existing.projectId,
+    input.repeatRule !== undefined ? input.repeatRule : existing.repeatRule,
+    input.estimatedMinutes !== undefined ? input.estimatedMinutes : existing.estimatedMinutes,
+    now,
+    id,
+  );
+}
+
+export async function setArchived(
+  db: SQLiteDatabase,
+  id: string,
+  isArchived: boolean,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE tasks SET is_archived = ?, updated_at = ? WHERE id = ?',
+    isArchived ? 1 : 0,
+    new Date().toISOString(),
+    id,
+  );
+}
+
+export async function remove(db: SQLiteDatabase, id: string): Promise<void> {
+  await db.runAsync('DELETE FROM tasks WHERE id = ?', id);
 }
 
 export async function setCompleted(
@@ -102,13 +247,32 @@ export async function setCompleted(
     now,
     id,
   );
+
+  if (!isCompleted) return;
+
+  const task = await getById(db, id);
+  if (!task || !task.repeatRule || !task.dueDate) return;
+
+  const tags = await tagRepository.listForTask(db, id);
+
+  await create(db, {
+    title: task.title,
+    description: task.description,
+    dueDate: nextOccurrence(task.dueDate, task.repeatRule),
+    dueTime: task.dueTime,
+    priority: task.priority,
+    projectId: task.projectId,
+    repeatRule: task.repeatRule,
+    estimatedMinutes: task.estimatedMinutes,
+    tagIds: tags.map((tag) => tag.id),
+  });
 }
 
 export async function seedIfEmpty(db: SQLiteDatabase): Promise<void> {
   const count = await countTable(db);
   if (count > 0) return;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const sample: NewTaskInput[] = [
     { title: 'Review cybersecurity project notes', dueDate: today, dueTime: '09:30', priority: 'high' },
     { title: 'Finish onboarding flow wireframes', dueDate: today, dueTime: '13:00', priority: 'medium' },
