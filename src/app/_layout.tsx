@@ -17,10 +17,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DATABASE_NAME, migrateDatabase } from '@/data/db/migrate';
 import { seedIfEmpty } from '@/data/repositories/task-repository';
+import { NotificationResponseHandler } from '@/features/tasks/notification-response-handler';
 import { queryClient } from '@/lib/query-client';
+import { configureNotificationHandler } from '@/lib/notifications/notification-service';
 import { AppThemeProvider, useResolvedScheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+configureNotificationHandler();
 
 async function onInitDatabase(db: SQLiteDatabase) {
   await migrateDatabase(db);
@@ -33,6 +36,7 @@ function RootNavigation() {
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <NotificationResponseHandler />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen

@@ -16,6 +16,9 @@ export interface Task {
   repeatRule: RepeatRule | null;
   estimatedMinutes: number | null;
   seriesId: string;
+  reminderEnabled: boolean;
+  reminderTime: string | null;
+  notificationId: string | null;
   isArchived: boolean;
   isCompleted: boolean;
   completedAt: string | null;
@@ -40,6 +43,8 @@ export interface NewTaskInput {
   estimatedMinutes?: number | null;
   tagIds?: string[];
   seriesId?: string;
+  reminderEnabled?: boolean;
+  reminderTime?: string | null;
 }
 
 export interface UpdateTaskInput {

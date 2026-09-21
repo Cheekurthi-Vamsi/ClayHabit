@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { Alert, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, Icon, IconButton, Skeleton, Text } from '@/components/ui';
 import type { RepeatRule, TaskPriority, TaskWithDetails } from '@/domain/entities/task';
 import { useAppTheme } from '@/theme';
-import { todayIso } from '@/utils/date';
+import { formatTime12h, todayIso } from '@/utils/date';
 
 import { useContributionGrid, useSeriesStreak } from '../streaks/hooks';
 import { StreakGrid } from '../streaks/streak-grid';
@@ -17,6 +18,7 @@ import {
   useDeleteTask,
   useProjects,
   useRemoveSubtask,
+  useSetReminder,
   useSetTaskTags,
   useTaskDetails,
   useToggleSubtask,
@@ -83,6 +85,90 @@ function StreakSection({ seriesId, rule }: { seriesId: string; rule: RepeatRule 
           </View>
         )}
       </Card>
+    </Section>
+  );
+}
+
+function timeStringToDate(time: string): Date {
+  const [hour, minute] = time.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
+function dateToTimeString(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function ReminderSection({ task }: { task: TaskWithDetails }) {
+  const setReminder = useSetReminder();
+  const [showPicker, setShowPicker] = useState(false);
+
+  if (!task.dueDate) {
+    return (
+      <Section title="Reminder">
+        <Text variant="bodySmall" color="textTertiary">
+          Set a due date to enable a reminder.
+        </Text>
+      </Section>
+    );
+  }
+
+  const currentTime = task.reminderTime ?? '09:00';
+
+  const commit = (time: string) => {
+    setReminder.mutate(
+      { task, enabled: true, time },
+      {
+        onError: () =>
+          Alert.alert('Notifications disabled', 'Enable notifications in Settings to use reminders.'),
+      },
+    );
+  };
+
+  const openPicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        mode: 'time',
+        value: timeStringToDate(currentTime),
+        onChange: (event, date) => {
+          if (event.type === 'set' && date) commit(dateToTimeString(date));
+        },
+      });
+      return;
+    }
+    setShowPicker(true);
+  };
+
+  return (
+    <Section title="Reminder">
+      <View style={styles.chipRow}>
+        <Chip
+          label="Off"
+          selected={!task.reminderEnabled}
+          onPress={() => setReminder.mutate({ task, enabled: false, time: null })}
+        />
+        <Chip
+          label={task.reminderEnabled ? `On · ${formatTime12h(currentTime)}` : 'On'}
+          selected={task.reminderEnabled}
+          icon="bell"
+          onPress={openPicker}
+        />
+      </View>
+
+      {Platform.OS === 'ios' && showPicker && (
+        <View style={{ gap: 8 }}>
+          <DateTimePicker
+            mode="time"
+            display="spinner"
+            value={timeStringToDate(currentTime)}
+            onChange={(_event, date) => {
+              if (date) commit(dateToTimeString(date));
+            }}
+          />
+          <Button label="Done" variant="outline" onPress={() => setShowPicker(false)} />
+        </View>
+      )}
     </Section>
   );
 }
@@ -206,6 +292,8 @@ function TaskDetailBody({ task }: { task: TaskWithDetails }) {
           />
         </View>
       </Section>
+
+      <ReminderSection task={task} />
 
       <Section title="Repeat">
         <View style={styles.chipRow}>

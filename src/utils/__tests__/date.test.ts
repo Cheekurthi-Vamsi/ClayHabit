@@ -1,4 +1,4 @@
-import { formatTime12h, greetingForHour, todayIso } from '../date';
+import { combineDateAndTime, formatTime12h, greetingForHour, todayIso } from '../date';
 
 describe('date utils', () => {
   it('formats today as an ISO date string', () => {
@@ -18,5 +18,14 @@ describe('date utils', () => {
     expect(formatTime12h('09:30')).toBe('9:30 AM');
     expect(formatTime12h('00:05')).toBe('12:05 AM');
     expect(formatTime12h('18:00')).toBe('6:00 PM');
+  });
+
+  it('combines a local date and time into a Date at that local moment', () => {
+    const date = combineDateAndTime('2026-09-21', '09:30');
+    expect(date.getFullYear()).toBe(2026);
+    expect(date.getMonth()).toBe(8); // 0-indexed: September
+    expect(date.getDate()).toBe(21);
+    expect(date.getHours()).toBe(9);
+    expect(date.getMinutes()).toBe(30);
   });
 });

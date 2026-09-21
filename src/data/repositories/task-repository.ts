@@ -28,6 +28,9 @@ interface TaskRow {
   repeat_rule: RepeatRule | null;
   estimated_minutes: number | null;
   series_id: string;
+  reminder_enabled: number;
+  reminder_time: string | null;
+  notification_id: string | null;
   is_archived: number;
   is_completed: number;
   completed_at: string | null;
@@ -47,6 +50,9 @@ function toTask(row: TaskRow): Task {
     repeatRule: row.repeat_rule,
     estimatedMinutes: row.estimated_minutes,
     seriesId: row.series_id,
+    reminderEnabled: row.reminder_enabled === 1,
+    reminderTime: row.reminder_time,
+    notificationId: row.notification_id,
     isArchived: row.is_archived === 1,
     isCompleted: row.is_completed === 1,
     completedAt: row.completed_at,
@@ -129,6 +135,8 @@ async function insertTaskRow(
     repeatRule: RepeatRule | null;
     estimatedMinutes: number | null;
     seriesId: string;
+    reminderEnabled: boolean;
+    reminderTime: string | null;
     createdAt: string;
     updatedAt: string;
   },
@@ -136,9 +144,9 @@ async function insertTaskRow(
   await db.runAsync(
     `INSERT INTO tasks (
        id, title, description, due_date, due_time, priority, project_id,
-       repeat_rule, estimated_minutes, series_id, is_archived, is_completed, completed_at,
-       created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, ?, ?)`,
+       repeat_rule, estimated_minutes, series_id, reminder_enabled, reminder_time,
+       notification_id, is_archived, is_completed, completed_at, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, NULL, ?, ?)`,
     values.id,
     values.title,
     values.description,
@@ -149,6 +157,8 @@ async function insertTaskRow(
     values.repeatRule,
     values.estimatedMinutes,
     values.seriesId,
+    values.reminderEnabled ? 1 : 0,
+    values.reminderTime,
     values.createdAt,
     values.updatedAt,
   );
@@ -159,6 +169,8 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
   const seriesId = input.seriesId ?? id;
   const now = new Date().toISOString();
   const priority: TaskPriority = input.priority ?? 'medium';
+  const reminderEnabled = input.reminderEnabled ?? false;
+  const reminderTime = input.reminderTime ?? null;
 
   await insertTaskRow(db, {
     id,
@@ -171,6 +183,8 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     repeatRule: input.repeatRule ?? null,
     estimatedMinutes: input.estimatedMinutes ?? null,
     seriesId,
+    reminderEnabled,
+    reminderTime,
     createdAt: now,
     updatedAt: now,
   });
@@ -190,12 +204,29 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     repeatRule: input.repeatRule ?? null,
     estimatedMinutes: input.estimatedMinutes ?? null,
     seriesId,
+    reminderEnabled,
+    reminderTime,
+    notificationId: null,
     isArchived: false,
     isCompleted: false,
     completedAt: null,
     createdAt: now,
     updatedAt: now,
   };
+}
+
+export async function setReminder(
+  db: SQLiteDatabase,
+  id: string,
+  input: { enabled: boolean; time: string | null; notificationId: string | null },
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE tasks SET reminder_enabled = ?, reminder_time = ?, notification_id = ? WHERE id = ?',
+    input.enabled ? 1 : 0,
+    input.time,
+    input.notificationId,
+    id,
+  );
 }
 
 export async function update(
@@ -246,9 +277,9 @@ export async function setCompleted(
   db: SQLiteDatabase,
   id: string,
   isCompleted: boolean,
-): Promise<void> {
+): Promise<{ nextOccurrence: Task | null }> {
   const task = await getById(db, id);
-  if (!task) return;
+  if (!task) return { nextOccurrence: null };
 
   const now = new Date().toISOString();
   await db.runAsync(
@@ -263,16 +294,16 @@ export async function setCompleted(
 
   if (!isCompleted) {
     await completionRepository.removeCompletion(db, task.seriesId, occurredOn);
-    return;
+    return { nextOccurrence: null };
   }
 
   await completionRepository.recordCompletion(db, id, task.seriesId, occurredOn);
 
-  if (!task.repeatRule || !task.dueDate) return;
+  if (!task.repeatRule || !task.dueDate) return { nextOccurrence: null };
 
   const tags = await tagRepository.listForTask(db, id);
 
-  await create(db, {
+  const nextOccurrenceTask = await create(db, {
     title: task.title,
     description: task.description,
     dueDate: nextOccurrence(task.dueDate, task.repeatRule),
@@ -283,7 +314,11 @@ export async function setCompleted(
     estimatedMinutes: task.estimatedMinutes,
     tagIds: tags.map((tag) => tag.id),
     seriesId: task.seriesId,
+    reminderEnabled: task.reminderEnabled,
+    reminderTime: task.reminderTime,
   });
+
+  return { nextOccurrence: nextOccurrenceTask };
 }
 
 export async function getStreakDates(db: SQLiteDatabase, seriesId: string): Promise<string[]> {

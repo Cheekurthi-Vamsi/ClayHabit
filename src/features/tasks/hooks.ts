@@ -1,13 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 
 import * as projectRepository from '@/data/repositories/project-repository';
 import * as subtaskRepository from '@/data/repositories/subtask-repository';
 import * as tagRepository from '@/data/repositories/tag-repository';
 import * as taskRepository from '@/data/repositories/task-repository';
 import type { NewProjectInput } from '@/domain/entities/project';
-import type { NewTaskInput, UpdateTaskInput } from '@/domain/entities/task';
-import { todayIso } from '@/utils/date';
+import type { NewTaskInput, Task, UpdateTaskInput } from '@/domain/entities/task';
+import {
+  cancelReminder,
+  requestPermission,
+  scheduleTaskReminder,
+} from '@/lib/notifications/notification-service';
+import { combineDateAndTime, todayIso } from '@/utils/date';
 
 const keys = {
   today: ['tasks', 'today'] as const,
@@ -20,6 +25,35 @@ const keys = {
 
 function invalidateTasks(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ['tasks'] });
+}
+
+function reminderDateFor(task: Task, time: string): Date | null {
+  if (!task.dueDate) return null;
+  return combineDateAndTime(task.dueDate, time);
+}
+
+export async function scheduleReminderForTask(
+  db: SQLiteDatabase,
+  task: Task,
+  enabled: boolean,
+  time: string | null,
+): Promise<void> {
+  await cancelReminder(task.notificationId);
+
+  const date = enabled && time ? reminderDateFor(task, time) : null;
+  if (!enabled || !time || !date) {
+    await taskRepository.setReminder(db, task.id, { enabled: false, time: null, notificationId: null });
+    return;
+  }
+
+  const notificationId = await scheduleTaskReminder({
+    taskId: task.id,
+    title: task.title,
+    body: 'Task reminder',
+    date,
+  });
+
+  await taskRepository.setReminder(db, task.id, { enabled: true, time, notificationId });
 }
 
 export function useTodayTasks() {
@@ -71,9 +105,42 @@ export function useToggleTask() {
   return useMutation({
     mutationFn: ({ id, isCompleted }: { id: string; isCompleted: boolean }) =>
       taskRepository.setCompleted(db, id, isCompleted),
-    onSuccess: () => {
+    onSuccess: async (result) => {
+      const next = result.nextOccurrence;
+      if (next?.reminderEnabled && next.reminderTime) {
+        await scheduleReminderForTask(db, next, true, next.reminderTime);
+      }
       invalidateTasks(queryClient);
       queryClient.invalidateQueries({ queryKey: ['streaks'] });
+    },
+  });
+}
+
+export function useSetReminder() {
+  const db = useSQLiteContext();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      task,
+      enabled,
+      time,
+    }: {
+      task: Task;
+      enabled: boolean;
+      time: string | null;
+    }) => {
+      if (enabled) {
+        const granted = await requestPermission();
+        if (!granted) {
+          throw new Error('Notification permission was not granted.');
+        }
+      }
+      await scheduleReminderForTask(db, task, enabled, time);
+    },
+    onSuccess: (_data, variables) => {
+      invalidateTasks(queryClient);
+      queryClient.invalidateQueries({ queryKey: keys.detail(variables.task.id) });
     },
   });
 }

@@ -32,3 +32,11 @@ export function formatTime12h(time: string | null): string | null {
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
   return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
 }
+
+/** Combines a local YYYY-MM-DD date with an HH:mm time into a local Date. */
+export function combineDateAndTime(dateIso: string, time: string): Date {
+  const [hour, minute] = time.split(':').map(Number);
+  const date = new Date(`${dateIso}T00:00:00`);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
