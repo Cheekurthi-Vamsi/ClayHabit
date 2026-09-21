@@ -12,6 +12,7 @@ import { nextOccurrence } from '@/domain/services/recurrence';
 import { todayIso } from '@/utils/date';
 import { generateId } from '@/utils/id';
 
+import * as completionRepository from './completion-repository';
 import * as projectRepository from './project-repository';
 import * as tagRepository from './tag-repository';
 import * as subtaskRepository from './subtask-repository';
@@ -26,6 +27,7 @@ interface TaskRow {
   project_id: string | null;
   repeat_rule: RepeatRule | null;
   estimated_minutes: number | null;
+  series_id: string;
   is_archived: number;
   is_completed: number;
   completed_at: string | null;
@@ -44,6 +46,7 @@ function toTask(row: TaskRow): Task {
     projectId: row.project_id,
     repeatRule: row.repeat_rule,
     estimatedMinutes: row.estimated_minutes,
+    seriesId: row.series_id,
     isArchived: row.is_archived === 1,
     isCompleted: row.is_completed === 1,
     completedAt: row.completed_at,
@@ -125,6 +128,7 @@ async function insertTaskRow(
     projectId: string | null;
     repeatRule: RepeatRule | null;
     estimatedMinutes: number | null;
+    seriesId: string;
     createdAt: string;
     updatedAt: string;
   },
@@ -132,9 +136,9 @@ async function insertTaskRow(
   await db.runAsync(
     `INSERT INTO tasks (
        id, title, description, due_date, due_time, priority, project_id,
-       repeat_rule, estimated_minutes, is_archived, is_completed, completed_at,
+       repeat_rule, estimated_minutes, series_id, is_archived, is_completed, completed_at,
        created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, ?, ?)`,
     values.id,
     values.title,
     values.description,
@@ -144,6 +148,7 @@ async function insertTaskRow(
     values.projectId,
     values.repeatRule,
     values.estimatedMinutes,
+    values.seriesId,
     values.createdAt,
     values.updatedAt,
   );
@@ -151,6 +156,7 @@ async function insertTaskRow(
 
 export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<Task> {
   const id = generateId();
+  const seriesId = input.seriesId ?? id;
   const now = new Date().toISOString();
   const priority: TaskPriority = input.priority ?? 'medium';
 
@@ -164,6 +170,7 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     projectId: input.projectId ?? null,
     repeatRule: input.repeatRule ?? null,
     estimatedMinutes: input.estimatedMinutes ?? null,
+    seriesId,
     createdAt: now,
     updatedAt: now,
   });
@@ -182,6 +189,7 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     projectId: input.projectId ?? null,
     repeatRule: input.repeatRule ?? null,
     estimatedMinutes: input.estimatedMinutes ?? null,
+    seriesId,
     isArchived: false,
     isCompleted: false,
     completedAt: null,
@@ -239,6 +247,9 @@ export async function setCompleted(
   id: string,
   isCompleted: boolean,
 ): Promise<void> {
+  const task = await getById(db, id);
+  if (!task) return;
+
   const now = new Date().toISOString();
   await db.runAsync(
     `UPDATE tasks SET is_completed = ?, completed_at = ?, updated_at = ? WHERE id = ?`,
@@ -248,10 +259,16 @@ export async function setCompleted(
     id,
   );
 
-  if (!isCompleted) return;
+  const occurredOn = task.dueDate ?? todayIso();
 
-  const task = await getById(db, id);
-  if (!task || !task.repeatRule || !task.dueDate) return;
+  if (!isCompleted) {
+    await completionRepository.removeCompletion(db, task.seriesId, occurredOn);
+    return;
+  }
+
+  await completionRepository.recordCompletion(db, id, task.seriesId, occurredOn);
+
+  if (!task.repeatRule || !task.dueDate) return;
 
   const tags = await tagRepository.listForTask(db, id);
 
@@ -265,7 +282,16 @@ export async function setCompleted(
     repeatRule: task.repeatRule,
     estimatedMinutes: task.estimatedMinutes,
     tagIds: tags.map((tag) => tag.id),
+    seriesId: task.seriesId,
   });
+}
+
+export async function getStreakDates(db: SQLiteDatabase, seriesId: string): Promise<string[]> {
+  return completionRepository.listDatesForSeries(db, seriesId);
+}
+
+export async function getOverallCompletionDates(db: SQLiteDatabase): Promise<string[]> {
+  return completionRepository.listAllDates(db);
 }
 
 export async function seedIfEmpty(db: SQLiteDatabase): Promise<void> {

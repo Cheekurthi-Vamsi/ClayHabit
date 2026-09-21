@@ -13,7 +13,7 @@ describe('migrations + taskRepository', () => {
     await migrateDatabase(db);
 
     const version = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    expect(version?.user_version).toBe(2);
+    expect(version?.user_version).toBe(3);
 
     const count = await taskRepository.countTable(db);
     expect(count).toBe(0);
@@ -134,5 +134,40 @@ describe('migrations + taskRepository', () => {
     expect(nextInstance).toBeDefined();
     expect(nextInstance?.dueDate).not.toBe(today);
     expect(nextInstance?.isCompleted).toBe(false);
+  });
+
+  it('logs a completion for the overall streak, and removes it when un-completed', async () => {
+    const db = createTestDb();
+    await migrateDatabase(db);
+
+    const task = await taskRepository.create(db, { title: 'One-off task', dueDate: todayIso() });
+
+    await taskRepository.setCompleted(db, task.id, true);
+    expect(await taskRepository.getOverallCompletionDates(db)).toContain(todayIso());
+    expect(await taskRepository.getStreakDates(db, task.seriesId)).toEqual([todayIso()]);
+
+    await taskRepository.setCompleted(db, task.id, false);
+    expect(await taskRepository.getOverallCompletionDates(db)).not.toContain(todayIso());
+  });
+
+  it('shares one series id across a recurring task and its next occurrence', async () => {
+    const db = createTestDb();
+    await migrateDatabase(db);
+
+    const task = await taskRepository.create(db, {
+      title: 'Morning pages',
+      dueDate: todayIso(),
+      repeatRule: 'daily',
+    });
+
+    await taskRepository.setCompleted(db, task.id, true);
+
+    const all = await taskRepository.listAll(db, { includeArchived: true });
+    const next = all.find((t) => t.id !== task.id && t.title === 'Morning pages');
+
+    expect(next?.seriesId).toBe(task.seriesId);
+
+    const streakDates = await taskRepository.getStreakDates(db, task.seriesId);
+    expect(streakDates).toEqual([todayIso()]);
   });
 });

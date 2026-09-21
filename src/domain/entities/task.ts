@@ -15,6 +15,7 @@ export interface Task {
   projectId: string | null;
   repeatRule: RepeatRule | null;
   estimatedMinutes: number | null;
+  seriesId: string;
   isArchived: boolean;
   isCompleted: boolean;
   completedAt: string | null;
@@ -38,6 +39,7 @@ export interface NewTaskInput {
   repeatRule?: RepeatRule | null;
   estimatedMinutes?: number | null;
   tagIds?: string[];
+  seriesId?: string;
 }
 
 export interface UpdateTaskInput {

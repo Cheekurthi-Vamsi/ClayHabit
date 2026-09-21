@@ -15,6 +15,7 @@ import { useAppTheme, type ColorToken } from '@/theme';
 import type { Task } from '@/domain/entities/task';
 import { formatTime12h, todayIso } from '@/utils/date';
 
+import { useSeriesStreak } from '../streaks/hooks';
 import { useArchiveTask, useDeleteTask } from './hooks';
 
 interface TaskListItemProps {
@@ -83,6 +84,7 @@ export function TaskListItem({ task, onToggle }: TaskListItemProps) {
   const router = useRouter();
   const archiveTask = useArchiveTask();
   const deleteTask = useDeleteTask();
+  const { data: streak } = useSeriesStreak(task.seriesId, task.repeatRule);
   const time = formatTime12h(task.dueTime);
 
   const handleToggle = () => {
@@ -128,10 +130,11 @@ export function TaskListItem({ task, onToggle }: TaskListItemProps) {
             >
               {task.title}
             </Text>
-            {(task.dueDate || time) && (
+            {(task.dueDate || time || (task.repeatRule && streak && streak.current > 0)) && (
               <Text variant="bodySmall" color="textSecondary">
                 {task.dueDate === todayIso() ? 'Today' : task.dueDate}
                 {time ? ` · ${time}` : ''}
+                {task.repeatRule && streak && streak.current > 0 ? ` · 🔥 ${streak.current}d` : ''}
               </Text>
             )}
           </Animated.View>

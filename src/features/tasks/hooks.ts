@@ -71,7 +71,10 @@ export function useToggleTask() {
   return useMutation({
     mutationFn: ({ id, isCompleted }: { id: string; isCompleted: boolean }) =>
       taskRepository.setCompleted(db, id, isCompleted),
-    onSuccess: () => invalidateTasks(queryClient),
+    onSuccess: () => {
+      invalidateTasks(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['streaks'] });
+    },
   });
 }
 

@@ -8,6 +8,8 @@ import type { RepeatRule, TaskPriority, TaskWithDetails } from '@/domain/entitie
 import { useAppTheme } from '@/theme';
 import { todayIso } from '@/utils/date';
 
+import { useContributionGrid, useSeriesStreak } from '../streaks/hooks';
+import { StreakGrid } from '../streaks/streak-grid';
 import {
   useAddSubtask,
   useArchiveTask,
@@ -44,6 +46,44 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </Text>
       {children}
     </View>
+  );
+}
+
+function StreakSection({ seriesId, rule }: { seriesId: string; rule: RepeatRule }) {
+  const theme = useAppTheme();
+  const { data: streak } = useSeriesStreak(seriesId, rule);
+  const { data: grid } = useContributionGrid(seriesId);
+
+  return (
+    <Section title="Streak">
+      <Card>
+        <View style={styles.streakStatsRow}>
+          <View>
+            <Text variant="headlineLarge">{streak?.current ?? 0}</Text>
+            <Text variant="bodySmall" color="textSecondary">
+              Current 🔥
+            </Text>
+          </View>
+          <View>
+            <Text variant="headlineLarge">{streak?.best ?? 0}</Text>
+            <Text variant="bodySmall" color="textSecondary">
+              Best
+            </Text>
+          </View>
+          <View>
+            <Text variant="headlineLarge">{streak?.totalCompletions ?? 0}</Text>
+            <Text variant="bodySmall" color="textSecondary">
+              Completed
+            </Text>
+          </View>
+        </View>
+        {grid && (
+          <View style={{ marginTop: theme.spacing.md }}>
+            <StreakGrid columns={grid} />
+          </View>
+        )}
+      </Card>
+    </Section>
   );
 }
 
@@ -179,6 +219,8 @@ function TaskDetailBody({ task }: { task: TaskWithDetails }) {
           ))}
         </View>
       </Section>
+
+      {task.repeatRule && <StreakSection seriesId={task.seriesId} rule={task.repeatRule} />}
 
       <Section title="Project">
         <View style={styles.chipRow}>
@@ -360,5 +402,9 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'center',
     marginTop: 12,
+  },
+  streakStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
