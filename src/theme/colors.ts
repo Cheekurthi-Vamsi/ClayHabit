@@ -26,6 +26,15 @@ export interface ThemeColors {
   accentMint: string;
   accentCyan: string;
 
+  /** Finance environment accent (icons, indicators). */
+  finance: string;
+  financeMuted: string;
+  /** Finance accent as text: positive amounts, links. Clears 4.5:1 on the background. */
+  financeText: string;
+  /** Validated two-series pair for money in vs money out in charts. */
+  chartIncome: string;
+  chartExpense: string;
+
   success: string;
   successMuted: string;
   warning: string;
@@ -67,6 +76,12 @@ export const lightColors: ThemeColors = {
   accentMint: '#8FE3CF',
   accentCyan: '#6ED7FF',
 
+  finance: '#12A38C',
+  financeMuted: '#E3F6F2',
+  financeText: '#0A7A70',
+  chartIncome: '#1BAF7A',
+  chartExpense: '#EB6834',
+
   success: '#2EBD85',
   successMuted: '#E3F7EF',
   warning: '#F5A524',
@@ -106,6 +121,12 @@ export const darkColors: ThemeColors = {
   accentMint: '#8FE3CF',
   accentCyan: '#6ED7FF',
 
+  finance: '#3CCFB6',
+  financeMuted: '#0F2E2A',
+  financeText: '#4FD1C0',
+  chartIncome: '#199E70',
+  chartExpense: '#D95926',
+
   success: '#3FD99A',
   successMuted: '#0F3326',
   warning: '#FFB94D',
@@ -132,6 +153,8 @@ export interface ThemeGradients {
   aurora: GradientStops;
   /** Barely-there blue/purple wash for large hero surfaces with dark text on top. */
   heroSoft: GradientStops;
+  /** Mint → teal → blue. The finance environment's signature (white text clears 3:1 on every stop). */
+  finance: GradientStops;
 }
 
 export const gradients: { light: ThemeGradients; dark: ThemeGradients } = {
@@ -143,6 +166,7 @@ export const gradients: { light: ThemeGradients; dark: ThemeGradients } = {
     pinkPurple: ['#F472B6', '#8B7CFF'],
     aurora: ['#F472B6', '#A78BFA', '#65C7FF'],
     heroSoft: ['#EEEBFF', '#F5EEFF', '#E6F5FF'],
+    finance: ['#12A38C', '#0F8C84', '#2B6FD0'],
   },
   dark: {
     primary: ['#7B6CF5', '#4FA9E8'],
@@ -152,5 +176,6 @@ export const gradients: { light: ThemeGradients; dark: ThemeGradients } = {
     pinkPurple: ['#D9579C', '#7B6CF5'],
     aurora: ['#D9579C', '#8E78E0', '#4FA9E8'],
     heroSoft: ['#1C1936', '#221A39', '#142336'],
+    finance: ['#0E8272', '#0B6E69', '#2459A8'],
   },
 };

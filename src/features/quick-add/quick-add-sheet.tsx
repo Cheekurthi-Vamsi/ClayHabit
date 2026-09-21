@@ -24,6 +24,7 @@ const TILES: Tile[] = [
   { key: 'reminder', label: 'Reminder', hint: 'Task with an alert', icon: 'bell', gradient: 'secondary' },
   { key: 'goal', label: 'Goal', hint: 'A bigger outcome', icon: 'target', gradient: 'mintCyan' },
   { key: 'focus', label: 'Focus', hint: 'Start 25 minutes', icon: 'zap', gradient: 'aurora' },
+  { key: 'expense', label: 'Expense', hint: 'Log spending in seconds', icon: 'credit-card', gradient: 'finance' },
 ];
 
 function TileButton({
@@ -93,6 +94,9 @@ export function QuickAddSheet({ visible, onClose }: { visible: boolean; onClose:
         break;
       case 'focus':
         router.push({ pathname: '/focus', params: { autostart: '25' } });
+        break;
+      case 'expense':
+        router.push('/modal/transaction');
         break;
       case 'note':
         createNote.mutate(undefined, { onSuccess: (note) => router.push(`/note/${note.id}`) });

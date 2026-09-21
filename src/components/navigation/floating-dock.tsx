@@ -15,16 +15,19 @@ import { Icon, type IconName, Text } from '@/components/ui';
 import { usePressScale } from '@/hooks/use-press-scale';
 import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
-import { useAppTheme } from '@/theme';
+import { useAppTheme, type GradientStops } from '@/theme';
 
 export const DOCK_HEIGHT = 66;
 const DOCK_GAP = 10;
-const SLOTS = 5;
 const PILL_WIDTH = 48;
 const PILL_HEIGHT = 32;
 const CREATE_SIZE = 60;
+/** A dock with few tabs shrinks to a centred pill instead of spreading 3 slots edge to edge. */
+const MAX_SLOT_WIDTH = 88;
 
-const TAB_META: Record<string, { label: string; icon: IconName }> = {
+export type DockTabMeta = Record<string, { label: string; icon: IconName }>;
+
+const PRODUCTIVITY_TABS: DockTabMeta = {
   index: { label: 'Home', icon: 'home' },
   tasks: { label: 'Tasks', icon: 'check-square' },
   notes: { label: 'Notes', icon: 'file-text' },
@@ -37,12 +40,22 @@ export function useDockSpace(): number {
   return insets.bottom + DOCK_GAP + DOCK_HEIGHT + 32;
 }
 
-/** Tabs sit in slots 0,1,3,4 — slot 2 is reserved for the raised create button. */
-function slotFor(tabIndex: number): number {
-  return tabIndex < 2 ? tabIndex : tabIndex + 1;
+/**
+ * The raised create button takes the middle slot: with 4 tabs they sit in
+ * slots 0,1,3,4; with 2 tabs in slots 0 and 2.
+ */
+function slotFor(tabIndex: number, tabCount: number): number {
+  return tabIndex < Math.ceil(tabCount / 2) ? tabIndex : tabIndex + 1;
 }
 
-function CreateButton({ open, onPress }: { open: boolean; onPress: () => void }) {
+interface CreateButtonProps {
+  open: boolean;
+  onPress: () => void;
+  gradient?: GradientStops;
+  accessibilityHint: string;
+}
+
+function CreateButton({ open, onPress, gradient, accessibilityHint }: CreateButtonProps) {
   const theme = useAppTheme();
   const reduceMotion = useReduceMotion();
   const rotation = useSharedValue(0);
@@ -53,6 +66,7 @@ function CreateButton({ open, onPress }: { open: boolean; onPress: () => void })
   }, [open, reduceMotion, rotation, theme.motion.springs.press]);
 
   const iconStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
+  const fill = gradient ?? theme.gradients.aurora;
 
   return (
     <Animated.View
@@ -61,7 +75,7 @@ function CreateButton({ open, onPress }: { open: boolean; onPress: () => void })
         {
           borderColor: theme.colors.background,
           backgroundColor: theme.colors.background,
-          shadowColor: theme.gradients.aurora[1],
+          shadowColor: fill[1],
         },
         pressStyle,
       ]}
@@ -75,11 +89,11 @@ function CreateButton({ open, onPress }: { open: boolean; onPress: () => void })
         onPressOut={onPressOut}
         accessibilityRole="button"
         accessibilityLabel="Create"
-        accessibilityHint="Opens options to add a task, habit, note, reminder, goal, or focus session"
+        accessibilityHint={accessibilityHint}
         style={styles.createPressable}
       >
         <LinearGradient
-          colors={theme.gradients.aurora}
+          colors={fill}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.createFill}
@@ -102,24 +116,44 @@ function CreateButton({ open, onPress }: { open: boolean; onPress: () => void })
 interface FloatingDockProps extends BottomTabBarProps {
   onCreate: () => void;
   createOpen: boolean;
+  /** Label and icon per route name. Defaults to the productivity tabs. */
+  tabs?: DockTabMeta;
+  /** Active-tab pill and label accent. Defaults to the productivity purple → blue. */
+  accentGradient?: GradientStops;
+  accentColor?: string;
+  createGradient?: GradientStops;
+  createHint?: string;
 }
 
-export function FloatingDock({ state, navigation, onCreate, createOpen }: FloatingDockProps) {
+export function FloatingDock({
+  state,
+  navigation,
+  onCreate,
+  createOpen,
+  tabs: tabMeta = PRODUCTIVITY_TABS,
+  accentGradient,
+  accentColor,
+  createGradient,
+  createHint = 'Opens options to add a task, habit, note, reminder, goal, or focus session',
+}: FloatingDockProps) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
   const keyboardVisible = useKeyboardVisible();
   const [width, setWidth] = useState(0);
 
-  const slotWidth = width / SLOTS;
+  const tabCount = state.routes.length;
+  const slots = tabCount + 1;
+  const slotWidth = width / slots;
+  const activeColor = accentColor ?? theme.colors.primary;
   const indicatorX = useSharedValue(0);
   const visibility = useSharedValue(1);
 
   useEffect(() => {
     if (!slotWidth) return;
-    const x = slotFor(state.index) * slotWidth + (slotWidth - PILL_WIDTH) / 2;
+    const x = slotFor(state.index, tabCount) * slotWidth + (slotWidth - PILL_WIDTH) / 2;
     indicatorX.value = reduceMotion ? x : withSpring(x, { damping: 18, stiffness: 220, mass: 0.6 });
-  }, [state.index, slotWidth, reduceMotion, indicatorX]);
+  }, [state.index, tabCount, slotWidth, reduceMotion, indicatorX]);
 
   useEffect(() => {
     visibility.value = withTiming(keyboardVisible ? 0 : 1, { duration: 160 });
@@ -132,7 +166,7 @@ export function FloatingDock({ state, navigation, onCreate, createOpen }: Floati
   }));
 
   const tabs = state.routes.map((route, index) => {
-    const meta = TAB_META[route.name] ?? { label: route.name, icon: 'circle' as IconName };
+    const meta = tabMeta[route.name] ?? { label: route.name, icon: 'circle' as IconName };
     const focused = state.index === index;
 
     const onPress = () => {
@@ -162,7 +196,7 @@ export function FloatingDock({ state, navigation, onCreate, createOpen }: Floati
         </View>
         <Text
           variant="caption"
-          style={{ color: focused ? theme.colors.primary : theme.colors.textTertiary }}
+          style={{ color: focused ? activeColor : theme.colors.textTertiary }}
         >
           {meta.label}
         </Text>
@@ -180,6 +214,7 @@ export function FloatingDock({ state, navigation, onCreate, createOpen }: Floati
         style={[
           styles.dock,
           {
+            maxWidth: slots * MAX_SLOT_WIDTH,
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             shadowColor: theme.scheme === 'dark' ? '#000000' : theme.colors.primary,
@@ -189,18 +224,18 @@ export function FloatingDock({ state, navigation, onCreate, createOpen }: Floati
         {width > 0 ? (
           <Animated.View style={[styles.indicator, indicatorStyle]}>
             <LinearGradient
-              colors={theme.gradients.primary}
+              colors={accentGradient ?? theme.gradients.primary}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.indicatorFill}
             />
           </Animated.View>
         ) : null}
-        {tabs.slice(0, 2)}
+        {tabs.slice(0, Math.ceil(tabCount / 2))}
         <View style={styles.slot} />
-        {tabs.slice(2)}
+        {tabs.slice(Math.ceil(tabCount / 2))}
       </View>
-      <CreateButton open={createOpen} onPress={onCreate} />
+      <CreateButton open={createOpen} onPress={onCreate} gradient={createGradient} accessibilityHint={createHint} />
     </Animated.View>
   );
 }
@@ -213,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dock: {
-    alignSelf: 'stretch',
+    width: '100%',
     height: DOCK_HEIGHT,
     borderRadius: DOCK_HEIGHT / 2,
     borderWidth: StyleSheet.hairlineWidth,

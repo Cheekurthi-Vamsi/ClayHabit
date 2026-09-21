@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EnvironmentSwitcher } from '@/components/navigation/environment-switcher';
 import { useDockSpace } from '@/components/navigation/floating-dock';
 import {
   Button,
@@ -22,6 +23,7 @@ import { isScheduledOn } from '@/domain/services/habit-engine';
 import { useAppTheme } from '@/theme';
 import { todayIso } from '@/utils/date';
 
+import { FinanceEntryCard } from '../finance/finance-entry-card';
 import { HabitCard } from '../habits/habit-card';
 import { useHabits } from '../habits/hooks';
 import { useNotes } from '../notes/hooks';
@@ -99,7 +101,8 @@ export function DashboardScreen() {
           />
         }
       >
-        <Stagger index={0}>
+        <Stagger index={0} style={styles.top}>
+          <EnvironmentSwitcher current="productivity" />
           <DashboardHeader />
         </Stagger>
 
@@ -198,6 +201,10 @@ export function DashboardScreen() {
           <SectionHeader title="Quick note" onAction={() => router.navigate('/notes')} />
           <QuickNoteCard note={latestNote} />
         </Stagger>
+
+        <Stagger index={8}>
+          <FinanceEntryCard />
+        </Stagger>
       </ScrollView>
 
       <StreakMilestoneWatcher />
@@ -212,6 +219,9 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     gap: 20,
+  },
+  top: {
+    gap: 18,
   },
   bento: {
     flexDirection: 'row',

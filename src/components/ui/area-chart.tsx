@@ -22,6 +22,8 @@ interface AreaChartProps {
   xLabels?: readonly { index: number; label: string }[];
   selectedIndex: number | null;
   onSelectIndex: (index: number) => void;
+  /** Formats the scale labels (top of the scale, and the bottom when it dips below zero). */
+  formatScale?: (value: number) => string;
   accessibilityLabel: string;
 }
 
@@ -36,6 +38,7 @@ export function AreaChart({
   xLabels,
   selectedIndex,
   onSelectIndex,
+  formatScale = defaultFormatScale,
   accessibilityLabel,
 }: AreaChartProps) {
   const theme = useAppTheme();
@@ -57,15 +60,17 @@ export function AreaChart({
   const revealStyle = useAnimatedStyle(() => ({ width: width * reveal.value }));
 
   const n = values.length;
+  // The scale always includes zero, so a dip below it (an overdrawn balance) reads as one.
   const peak = Math.max(0, ...values);
-  const max = Math.max(1, peak);
+  const floor = Math.min(0, ...values);
+  const max = peak > floor ? peak : floor + 1;
   const plotWidth = Math.max(0, width - INSET_X * 2);
   const plotHeight = height - TOP - 4;
   const step = n > 1 ? plotWidth / (n - 1) : 0;
-  const points: Point[] = values.map((value, index) => ({
-    x: INSET_X + index * step,
-    y: TOP + plotHeight * (1 - value / max),
-  }));
+  const yFor = (value: number) => TOP + plotHeight * ((max - value) / (max - floor));
+  const points: Point[] = values.map((value, index) => ({ x: INSET_X + index * step, y: yFor(value) }));
+  // Top, bottom, and the zero line when the scale crosses it (otherwise the midline).
+  const gridYs = [TOP, TOP + plotHeight, floor < 0 ? yFor(0) : TOP + plotHeight / 2];
 
   const line = monotonePath(points);
   const area =
@@ -98,14 +103,14 @@ export function AreaChart({
         {width > 0 ? (
           <>
             <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
-              {[0, 0.5, 1].map((fraction) => (
+              {gridYs.map((y, index) => (
                 <Line
-                  key={fraction}
+                  key={index}
                   x1={0}
                   x2={width}
-                  y1={TOP + plotHeight * fraction}
-                  y2={TOP + plotHeight * fraction}
-                  stroke={theme.colors.border}
+                  y1={y}
+                  y2={y}
+                  stroke={floor < 0 && index === 2 ? theme.colors.borderStrong : theme.colors.border}
                   strokeWidth={StyleSheet.hairlineWidth}
                 />
               ))}
@@ -113,6 +118,16 @@ export function AreaChart({
             {peak > 0 ? (
               <Text variant="caption" color="textTertiary" style={styles.scaleLabel} accessible={false}>
                 {formatScale(max)}
+              </Text>
+            ) : null}
+            {floor < 0 ? (
+              <Text
+                variant="caption"
+                color="textTertiary"
+                style={[styles.floorLabel, { top: TOP + plotHeight - 16 }]}
+                accessible={false}
+              >
+                {formatScale(floor)}
               </Text>
             ) : null}
 
@@ -215,8 +230,8 @@ export function AreaChart({
   );
 }
 
-/** Top-of-scale tick: whole numbers stay whole, anything else gets one decimal. */
-function formatScale(value: number): string {
+/** Scale tick: whole numbers stay whole, anything else gets one decimal. */
+function defaultFormatScale(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
@@ -224,6 +239,10 @@ const styles = StyleSheet.create({
   scaleLabel: {
     position: 'absolute',
     top: TOP - 16,
+    left: 0,
+  },
+  floorLabel: {
+    position: 'absolute',
     left: 0,
   },
   reveal: {

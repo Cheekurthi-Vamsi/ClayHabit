@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Icon, IconButton, Text } from '@/components/ui';
+import { FinanceSettingsSection } from '@/features/finance/settings/finance-settings-section';
 import { SecuritySection } from '@/features/security/security-section';
 import { useAppTheme } from '@/theme';
 
@@ -63,6 +64,10 @@ export function SettingsScreen() {
 
       <Section title="APPEARANCE">
         <AppearanceSection />
+      </Section>
+
+      <Section title="FINANCE">
+        <FinanceSettingsSection />
       </Section>
 
       <Section title="SECURITY">

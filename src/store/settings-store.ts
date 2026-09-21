@@ -17,6 +17,12 @@ interface SettingsState {
   /** Highest streak milestone already celebrated, so each one only fires once. */
   lastCelebratedStreak: number;
   setLastCelebratedStreak: (days: number) => void;
+  /** Privacy mode: every money amount renders masked (₹••,•••). */
+  hideAmounts: boolean;
+  setHideAmounts: (hidden: boolean) => void;
+  /** Whether the productivity Home shows balance figures on its Finance card. Off by default. */
+  showFinanceSummary: boolean;
+  setShowFinanceSummary: (show: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -33,6 +39,10 @@ export const useSettingsStore = create<SettingsState>()(
       setBiometricEnabled: (enabled) => set({ biometricEnabled: enabled }),
       lastCelebratedStreak: 0,
       setLastCelebratedStreak: (days) => set({ lastCelebratedStreak: days }),
+      hideAmounts: false,
+      setHideAmounts: (hidden) => set({ hideAmounts: hidden }),
+      showFinanceSummary: false,
+      setShowFinanceSummary: (show) => set({ showFinanceSummary: show }),
     }),
     {
       name: 'clayhabit.settings',

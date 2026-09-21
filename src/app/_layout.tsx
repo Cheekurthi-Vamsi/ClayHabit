@@ -55,6 +55,16 @@ function RootNavigation() {
           }}
         >
           <Stack.Screen name="(tabs)" />
+          {/* A workspace switch, not a drill-down: fade rather than slide. */}
+          <Stack.Screen name="finance" options={{ animation: 'fade' }} />
+          <Stack.Screen
+            name="modal/transaction"
+            options={{ presentation: 'modal', headerShown: true, title: 'Add expense' }}
+          />
+          <Stack.Screen
+            name="modal/starting-balance"
+            options={{ presentation: 'modal', headerShown: true, title: 'Starting balance' }}
+          />
           <Stack.Screen
             name="modal/new-task"
             options={{ presentation: 'modal', headerShown: true, title: 'New Task' }}
