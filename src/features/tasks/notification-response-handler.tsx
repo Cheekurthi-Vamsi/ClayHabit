@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import * as taskRepository from '@/data/repositories/task-repository';
-import { scheduleTaskReminder } from '@/lib/notifications/notification-service';
+import {
+  addNotificationResponseListener,
+  scheduleTaskReminder,
+} from '@/lib/notifications/notification-service';
 
 import { scheduleReminderForTask } from './hooks';
 
@@ -21,7 +23,7 @@ export function NotificationResponseHandler() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
+    const unsubscribe = addNotificationResponseListener(async (response) => {
       const taskId = response.notification.request.content.data?.taskId as string | undefined;
       if (!taskId) return;
 
@@ -58,7 +60,7 @@ export function NotificationResponseHandler() {
       router.push(`/task/${taskId}`);
     });
 
-    return () => subscription.remove();
+    return unsubscribe;
   }, [db, queryClient, router]);
 
   return null;

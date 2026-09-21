@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, Icon, IconButton, Skeleton, Text } from '@/components/ui';
 import type { RepeatRule, TaskPriority, TaskWithDetails } from '@/domain/entities/task';
+import { notificationsUnsupported } from '@/lib/notifications/expo-go-guard';
 import { useAppTheme } from '@/theme';
 import { formatTime12h, todayIso } from '@/utils/date';
 
@@ -122,7 +123,12 @@ function ReminderSection({ task }: { task: TaskWithDetails }) {
       { task, enabled: true, time },
       {
         onError: () =>
-          Alert.alert('Notifications disabled', 'Enable notifications in Settings to use reminders.'),
+          Alert.alert(
+            'Notifications disabled',
+            notificationsUnsupported
+              ? 'Local notifications need a development build on Android — they aren’t available in Expo Go.'
+              : 'Enable notifications in Settings to use reminders.',
+          ),
       },
     );
   };
