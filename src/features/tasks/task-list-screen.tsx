@@ -4,6 +4,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip, EmptyState, ErrorState, IconButton, Skeleton, Text } from '@/components/ui';
+import { useDockSpace } from '@/components/navigation/floating-dock';
 import { useAppTheme } from '@/theme';
 import type { Task } from '@/domain/entities/task';
 
@@ -13,6 +14,7 @@ import { TaskListItem } from './task-list-item';
 export function TaskListScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const dockSpace = useDockSpace();
   const router = useRouter();
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [showCompleted, setShowCompleted] = useState(true);
@@ -80,7 +82,7 @@ export function TaskListScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.list,
-            { paddingBottom: insets.bottom + theme.spacing.huge },
+            { paddingBottom: dockSpace },
           ]}
           renderItem={({ item }) => <TaskListItem task={item} onToggle={handleToggle} />}
           ListEmptyComponent={

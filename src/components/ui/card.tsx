@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -8,13 +7,24 @@ import { useAppTheme } from '@/theme';
 interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
+  onLongPress?: () => void;
+  delayLongPress?: number;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function Card({ children, onPress, style, accessibilityLabel }: CardProps) {
+export function Card({
+  children,
+  onPress,
+  onLongPress,
+  delayLongPress,
+  style,
+  accessibilityLabel,
+  accessibilityHint,
+}: CardProps) {
   const theme = useAppTheme();
   const { animatedStyle, onPressIn, onPressOut } = usePressScale({ scaleTo: 0.98 });
 
@@ -29,20 +39,20 @@ export function Card({ children, onPress, style, accessibilityLabel }: CardProps
     style,
   ];
 
-  if (!onPress) {
+  if (!onPress && !onLongPress) {
     return <View style={baseStyle}>{children}</View>;
   }
 
   return (
     <AnimatedPressable
       onPress={onPress}
-      onPressIn={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPressIn();
-      }}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
+      onPressIn={onPressIn}
       onPressOut={onPressOut}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       style={[baseStyle, animatedStyle]}
     >
       {children}

@@ -39,10 +39,3 @@ export async function listDatesForSeries(db: SQLiteDatabase, seriesId: string): 
   );
   return rows.map((row) => row.occurred_on);
 }
-
-export async function listAllDates(db: SQLiteDatabase): Promise<string[]> {
-  const rows = await db.getAllAsync<{ occurred_on: string }>(
-    'SELECT DISTINCT occurred_on FROM task_completions ORDER BY occurred_on ASC',
-  );
-  return rows.map((row) => row.occurred_on);
-}

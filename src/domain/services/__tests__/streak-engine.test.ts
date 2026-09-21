@@ -1,5 +1,6 @@
 import {
   buildContributionGrid,
+  pendingMilestone,
   computeCompletionRate,
   computeStreakStats,
   countExpectedOccurrences,
@@ -108,5 +109,22 @@ describe('buildContributionGrid', () => {
     const future = flat.filter((day) => day.isFuture);
     expect(future.every((day) => day.date > '2026-09-16')).toBe(true);
     expect(future.length).toBeGreaterThan(0);
+  });
+});
+
+describe('pendingMilestone', () => {
+  it('fires the highest milestone reached that has not been celebrated', () => {
+    expect(pendingMilestone(7, 0)).toBe(7);
+    expect(pendingMilestone(16, 7)).toBe(14);
+    expect(pendingMilestone(31, 0)).toBe(30);
+  });
+
+  it('stays quiet between milestones', () => {
+    expect(pendingMilestone(6, 0)).toBeNull();
+    expect(pendingMilestone(10, 7)).toBeNull();
+  });
+
+  it('re-arms earlier milestones after the streak breaks and rebuilds', () => {
+    expect(pendingMilestone(8, 14)).toBe(7);
   });
 });

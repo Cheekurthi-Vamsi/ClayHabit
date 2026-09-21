@@ -1,3 +1,4 @@
+import * as activityRepository from '@/data/repositories/activity-repository';
 import * as projectRepository from '@/data/repositories/project-repository';
 import * as subtaskRepository from '@/data/repositories/subtask-repository';
 import * as tagRepository from '@/data/repositories/tag-repository';
@@ -13,7 +14,7 @@ describe('migrations + taskRepository', () => {
     await migrateDatabase(db);
 
     const version = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    expect(version?.user_version).toBe(6);
+    expect(version?.user_version).toBe(7);
 
     const count = await taskRepository.countTable(db);
     expect(count).toBe(0);
@@ -143,11 +144,11 @@ describe('migrations + taskRepository', () => {
     const task = await taskRepository.create(db, { title: 'One-off task', dueDate: todayIso() });
 
     await taskRepository.setCompleted(db, task.id, true);
-    expect(await taskRepository.getOverallCompletionDates(db)).toContain(todayIso());
+    expect(await activityRepository.activeDates(db)).toContain(todayIso());
     expect(await taskRepository.getStreakDates(db, task.seriesId)).toEqual([todayIso()]);
 
     await taskRepository.setCompleted(db, task.id, false);
-    expect(await taskRepository.getOverallCompletionDates(db)).not.toContain(todayIso());
+    expect(await activityRepository.activeDates(db)).not.toContain(todayIso());
   });
 
   it('shares one series id across a recurring task and its next occurrence', async () => {

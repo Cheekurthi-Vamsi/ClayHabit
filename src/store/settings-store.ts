@@ -8,21 +8,31 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 interface SettingsState {
   themePreference: ThemePreference;
   setThemePreference: (preference: ThemePreference) => void;
+  displayName: string;
+  setDisplayName: (name: string) => void;
   appLockEnabled: boolean;
   setAppLockEnabled: (enabled: boolean) => void;
   biometricEnabled: boolean;
   setBiometricEnabled: (enabled: boolean) => void;
+  /** Highest streak milestone already celebrated, so each one only fires once. */
+  lastCelebratedStreak: number;
+  setLastCelebratedStreak: (days: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      themePreference: 'system',
+      // Light is the flagship look; System/Dark stay one tap away in Settings.
+      themePreference: 'light',
       setThemePreference: (preference) => set({ themePreference: preference }),
+      displayName: '',
+      setDisplayName: (name) => set({ displayName: name.trim().slice(0, 40) }),
       appLockEnabled: false,
       setAppLockEnabled: (enabled) => set({ appLockEnabled: enabled }),
       biometricEnabled: false,
       setBiometricEnabled: (enabled) => set({ biometricEnabled: enabled }),
+      lastCelebratedStreak: 0,
+      setLastCelebratedStreak: (days) => set({ lastCelebratedStreak: days }),
     }),
     {
       name: 'clayhabit.settings',

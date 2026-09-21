@@ -22,7 +22,7 @@ import { NotificationResponseHandler } from '@/features/tasks/notification-respo
 import { queryClient } from '@/lib/query-client';
 import { configureNotificationHandler } from '@/lib/notifications/notification-service';
 import { useSettingsHydrated } from '@/store/settings-store';
-import { AppThemeProvider, useResolvedScheme } from '@/theme';
+import { AppThemeProvider, useAppTheme, useResolvedScheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 configureNotificationHandler();
@@ -34,13 +34,26 @@ async function onInitDatabase(db: SQLiteDatabase) {
 
 function RootNavigation() {
   const scheme = useResolvedScheme();
+  const theme = useAppTheme();
 
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <NotificationResponseHandler />
       <AppLockGate>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            headerStyle: { backgroundColor: theme.colors.background },
+            headerTintColor: theme.colors.primary,
+            headerTitleStyle: {
+              fontFamily: theme.typography.titleLarge.fontFamily,
+              color: theme.colors.textPrimary,
+            },
+            headerShadowVisible: false,
+            contentStyle: { backgroundColor: theme.colors.background },
+          }}
+        >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="modal/new-task"
@@ -49,6 +62,10 @@ function RootNavigation() {
           <Stack.Screen
             name="modal/new-goal"
             options={{ presentation: 'modal', headerShown: true, title: 'New Goal' }}
+          />
+          <Stack.Screen
+            name="modal/new-habit"
+            options={{ presentation: 'modal', headerShown: true, title: 'New Habit' }}
           />
           <Stack.Screen
             name="modal/new-event"

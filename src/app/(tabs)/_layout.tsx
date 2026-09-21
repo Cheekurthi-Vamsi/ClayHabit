@@ -1,67 +1,31 @@
+import { useState } from 'react';
 import { Tabs } from 'expo-router';
 
-import { Icon } from '@/components/ui';
+import { FloatingDock } from '@/components/navigation/floating-dock';
+import { QuickAddSheet } from '@/features/quick-add/quick-add-sheet';
 import { useAppTheme } from '@/theme';
 
 export default function TabsLayout() {
   const theme = useAppTheme();
+  const [createOpen, setCreateOpen] = useState(false);
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textTertiary,
-        tabBarStyle: {
-          backgroundColor: theme.colors.backgroundElevated,
-          borderTopColor: theme.colors.border,
-        },
-        tabBarLabelStyle: { fontFamily: theme.typography.labelMedium.fontFamily, fontSize: 11 },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color as string} />,
+    <>
+      <Tabs
+        tabBar={(props) => (
+          <FloatingDock {...props} onCreate={() => setCreateOpen(true)} createOpen={createOpen} />
+        )}
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: theme.colors.background },
         }}
-      />
-      <Tabs.Screen
-        name="tasks"
-        options={{
-          title: 'Tasks',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="check-square" size={size} color={color as string} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notes"
-        options={{
-          title: 'Notes',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="file-text" size={size} color={color as string} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendar',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="calendar" size={size} color={color as string} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="settings" size={size} color={color as string} />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen name="index" options={{ title: 'Home' }} />
+        <Tabs.Screen name="tasks" options={{ title: 'Tasks' }} />
+        <Tabs.Screen name="notes" options={{ title: 'Notes' }} />
+        <Tabs.Screen name="stats" options={{ title: 'Stats' }} />
+      </Tabs>
+      <QuickAddSheet visible={createOpen} onClose={() => setCreateOpen(false)} />
+    </>
   );
 }

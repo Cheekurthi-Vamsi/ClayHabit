@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, Chip, EmptyState, ProgressRing, Text } from '@/components/ui';
+import { Button, Card, Chip, EmptyState, IconButton, ProgressRing, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 
 import { useFinishFocusSession, useRecentFocusSessions, useStartFocusSession, useTodayFocusMinutes } from './hooks';
@@ -25,6 +26,7 @@ function formatClock(totalSeconds: number): string {
 export function FocusScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const startSession = useStartFocusSession();
   const finishSession = useFinishFocusSession();
   const { data: recentSessions } = useRecentFocusSessions();
@@ -56,13 +58,28 @@ export function FocusScreen() {
     return () => clearInterval(interval);
   }, [session, isPaused, finishSession]);
 
-  const handleStart = async () => {
-    const totalSeconds = plannedMinutes * 60;
-    const created = await startSession.mutateAsync({ plannedMinutes, taskId: null });
+  const startFocus = async (minutes: number) => {
+    const totalSeconds = minutes * 60;
+    const created = await startSession.mutateAsync({ plannedMinutes: minutes, taskId: null });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setPlannedMinutes(minutes);
     setSession({ id: created.id, totalSeconds, endAt: Date.now() + totalSeconds * 1000 });
     setRemainingSeconds(totalSeconds);
     setIsPaused(false);
   };
+
+  const handleStart = () => startFocus(plannedMinutes);
+
+  // "Start" on the dashboard's Focus card lands here with ?autostart=25 — begin immediately, once.
+  const { autostart } = useLocalSearchParams<{ autostart?: string }>();
+  const autostarted = useRef(false);
+  useEffect(() => {
+    const minutes = Number(autostart);
+    if (autostarted.current || !Number.isFinite(minutes) || minutes <= 0) return;
+    autostarted.current = true;
+    startFocus(minutes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart]);
 
   const handlePause = () => {
     pausedRemainingRef.current = remainingSeconds;
@@ -90,9 +107,12 @@ export function FocusScreen() {
       style={{ backgroundColor: theme.colors.background }}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + theme.spacing.lg, paddingBottom: insets.bottom + theme.spacing.huge },
+        { paddingTop: insets.top + theme.spacing.sm, paddingBottom: insets.bottom + theme.spacing.huge },
       ]}
     >
+      <View style={styles.backButton}>
+        <IconButton name="arrow-left" variant="ghost" accessibilityLabel="Back" onPress={() => router.back()} />
+      </View>
       <Text variant="displayMedium">Focus</Text>
       <Text variant="bodyMedium" color="textSecondary">
         {typeof todayMinutes === 'number' ? `${todayMinutes} min focused today` : 'Start a session to focus'}
@@ -179,7 +199,12 @@ export function FocusScreen() {
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
-    gap: 24,
+    gap: 20,
+  },
+  backButton: {
+    marginLeft: -10,
+    marginBottom: -8,
+    alignSelf: 'flex-start',
   },
   timerCard: {
     alignItems: 'center',

@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip, EmptyState, ErrorState, IconButton, Skeleton, Text } from '@/components/ui';
+import { useDockSpace } from '@/components/navigation/floating-dock';
 import { useAppTheme } from '@/theme';
 
 import { useCreateNote, useFolders, useNotes, useSearchNotes } from './hooks';
@@ -12,6 +13,7 @@ import { NoteCard } from './note-card';
 export function NotesListScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const dockSpace = useDockSpace();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [folderId, setFolderId] = useState<string | undefined>(undefined);
@@ -90,7 +92,7 @@ export function NotesListScreen() {
       )}
 
       <ScrollView
-        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + theme.spacing.huge }]}
+        contentContainerStyle={[styles.list, { paddingBottom: dockSpace }]}
         showsVerticalScrollIndicator={false}
       >
         {isSearchMode ? (

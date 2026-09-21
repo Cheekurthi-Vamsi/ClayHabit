@@ -72,6 +72,20 @@ export async function listRecent(db: SQLiteDatabase, limit = 20): Promise<FocusS
   return rows.map(toSession);
 }
 
+export async function totalMinutesBetween(
+  db: SQLiteDatabase,
+  startInstantIso: string,
+  endInstantIso: string,
+): Promise<number> {
+  const row = await db.getFirstAsync<{ total: number | null }>(
+    `SELECT SUM(actual_minutes) as total FROM focus_sessions
+     WHERE started_at >= ? AND started_at < ? AND ended_at IS NOT NULL`,
+    startInstantIso,
+    endInstantIso,
+  );
+  return row?.total ?? 0;
+}
+
 export async function totalMinutesSince(db: SQLiteDatabase, sinceIso: string): Promise<number> {
   const row = await db.getFirstAsync<{ total: number | null }>(
     'SELECT SUM(actual_minutes) as total FROM focus_sessions WHERE started_at >= ? AND ended_at IS NOT NULL',

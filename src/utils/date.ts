@@ -15,6 +15,38 @@ export function todayIso(): string {
   return toLocalIsoDate(new Date());
 }
 
+export function addDaysIso(iso: string, delta: number): string {
+  const date = new Date(`${iso}T00:00:00`);
+  date.setDate(date.getDate() + delta);
+  return toLocalIsoDate(date);
+}
+
+/** Monday of the week containing `iso`. */
+export function startOfWeekIso(iso: string): string {
+  const date = new Date(`${iso}T00:00:00`);
+  return addDaysIso(iso, -((date.getDay() + 6) % 7));
+}
+
+/** Local-midnight instant for a YYYY-MM-DD date, as a UTC ISO timestamp for SQL range queries. */
+export function localMidnightIso(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toISOString();
+}
+
+export function formatLongDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+export function formatRelativeTime(iso: string, now: number = Date.now()): string {
+  const minutes = Math.round((now - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 export function greetingForHour(hour: number): string {
   if (hour < 5) return 'Still up';
   if (hour < 12) return 'Good morning';

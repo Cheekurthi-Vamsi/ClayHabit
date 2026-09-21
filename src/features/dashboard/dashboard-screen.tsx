@@ -1,199 +1,253 @@
-import { useMemo } from 'react';
+import { Fragment, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BentoCard, Chip, EmptyState, ErrorState, IconButton, ProgressRing, Skeleton, Text } from '@/components/ui';
-import { useAppTheme } from '@/theme';
+import { useDockSpace } from '@/components/navigation/floating-dock';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  GradientCard,
+  SectionHeader,
+  Skeleton,
+  Stagger,
+  Text,
+} from '@/components/ui';
 import type { Note } from '@/domain/entities/note';
 import type { Task } from '@/domain/entities/task';
-import { greetingForHour } from '@/utils/date';
-import { getPreviewText } from '@/utils/markdown';
+import { isScheduledOn } from '@/domain/services/habit-engine';
+import { useAppTheme } from '@/theme';
+import { todayIso } from '@/utils/date';
 
-import { useCreateNote, useNotes } from '../notes/hooks';
-import { useOverallStreak } from '../streaks/hooks';
-import { useTodayTasks, useToggleTask } from '../tasks/hooks';
+import { HabitCard } from '../habits/habit-card';
+import { useHabits } from '../habits/hooks';
+import { useNotes } from '../notes/hooks';
+import { StreakMilestoneWatcher } from '../streaks/streak-milestone-watcher';
+import { useProjects, useTodayTasks, useToggleTask } from '../tasks/hooks';
 import { TaskListItem } from '../tasks/task-list-item';
+import { DashboardHeader } from './dashboard-header';
+import { FocusNowCard } from './focus-now-card';
+import { HeroProgressCard } from './hero-progress-card';
+import { useTodayProgress } from './hooks';
+import { NextUpCard } from './next-up-card';
+import { ProductivityCard } from './productivity-card';
+import { currentTimeHHmm, pickNextUp } from './progress';
+import { QuickNoteCard } from './quick-note-card';
+import { StreakCard } from './streak-card';
+
+const MAX_TASKS = 5;
+const MAX_HABITS = 3;
 
 export function DashboardScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const dockSpace = useDockSpace();
   const router = useRouter();
-  const { data: tasks, isLoading, isError, refetch } = useTodayTasks();
-  const { data: streak } = useOverallStreak();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const progress = useTodayProgress();
+  const { data: tasks, isLoading: tasksLoading, isError: tasksError, refetch: refetchTasks } = useTodayTasks();
+  const { data: habits } = useHabits();
   const { data: notes } = useNotes('active');
+  const { data: projects } = useProjects();
   const toggleTask = useToggleTask();
-  const createNote = useCreateNote();
 
-  const greeting = useMemo(() => greetingForHour(new Date().getHours()), []);
-
-  const total = tasks?.length ?? 0;
-  const completed = tasks?.filter((task) => task.isCompleted).length ?? 0;
-  const progress = total === 0 ? 0 : completed / total;
-
-  const mostRecentNote = useMemo(
-    () =>
-      (notes ?? []).reduce<Note | null>(
-        (latest, note) => (!latest || note.updatedAt > latest.updatedAt ? note : latest),
-        null,
-      ),
-    [notes],
+  const today = todayIso();
+  const nextUp = pickNextUp(tasks ?? [], currentTimeHHmm());
+  const nextUpProject = nextUp?.projectId
+    ? (projects?.find((project) => project.id === nextUp.projectId)?.name ?? null)
+    : null;
+  const todayTasks = (tasks ?? []).slice(0, MAX_TASKS);
+  const moreTasks = (tasks?.length ?? 0) - todayTasks.length;
+  const dashboardHabits = [...(habits ?? [])]
+    .sort(
+      (a, b) =>
+        Number(isScheduledOn(b.daysOfWeek, today)) - Number(isScheduledOn(a.daysOfWeek, today)),
+    )
+    .slice(0, MAX_HABITS);
+  const latestNote = (notes ?? []).reduce<Note | null>(
+    (latest, note) => (!latest || note.updatedAt > latest.updatedAt ? note : latest),
+    null,
   );
 
-  const handleToggle = (task: Task) => {
-    toggleTask.mutate({ id: task.id, isCompleted: !task.isCompleted });
+  const handleToggle = (task: Task) => toggleTask.mutate({ id: task.id, isCompleted: !task.isCompleted });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          {
-            paddingTop: insets.top + theme.spacing.lg,
-            paddingBottom: insets.bottom + theme.spacing.huge,
-          },
+          { paddingTop: insets.top + theme.spacing.md, paddingBottom: dockSpace },
         ]}
         showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.greetingRow}>
-          <View>
-            <Text variant="bodyMedium" color="textSecondary">
-              {greeting}
-            </Text>
-            <Text variant="displayMedium">Your workspace 👋</Text>
-          </View>
-        </View>
-
-        <View style={styles.quickActionsRow}>
-          <Chip
-            icon="file-text"
-            label="New Note"
-            onPress={() => createNote.mutate(undefined, { onSuccess: (note) => router.push(`/note/${note.id}`) })}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
           />
-          <Chip icon="clock" label="Focus" onPress={() => router.push('/focus')} />
-          <Chip icon="target" label="Goals" onPress={() => router.push('/goal')} />
-        </View>
+        }
+      >
+        <Stagger index={0}>
+          <DashboardHeader />
+        </Stagger>
 
-        <View style={styles.grid}>
-          <BentoCard title="Today" icon="check-circle" span="half" accentGradient={theme.gradients.primary}>
-            <View style={styles.progressRow}>
-              <ProgressRing progress={progress} size={72} strokeWidth={8}>
-                <Text variant="titleMedium">{`${completed}/${total}`}</Text>
-              </ProgressRing>
-              <View>
-                <Text variant="headlineMedium">{Math.round(progress * 100)}%</Text>
-                <Text variant="bodySmall" color="textSecondary">
-                  complete
-                </Text>
-              </View>
-            </View>
-          </BentoCard>
+        <Stagger index={1}>
+          <HeroProgressCard
+            done={progress.done}
+            total={progress.total}
+            ratio={progress.ratio}
+            delta={progress.delta}
+            loading={progress.isLoading}
+          />
+        </Stagger>
 
-          <BentoCard title="Streak" icon="zap" span="half" accentGradient={theme.gradients.mintCyan}>
-            <View style={styles.streakBody}>
-              <Text variant="displayMedium">{streak?.current ?? 0}</Text>
-              <Text variant="bodySmall" color="textSecondary">
-                {streak && streak.current > 0 ? 'day streak 🔥' : 'complete a task to start'}
-              </Text>
-              {streak && streak.best > streak.current && (
-                <Text variant="caption" color="textTertiary">
-                  Best: {streak.best} days
-                </Text>
-              )}
-            </View>
-          </BentoCard>
+        <Stagger index={2} style={styles.bento}>
+          <StreakCard style={styles.streak} onPress={() => router.navigate('/stats')} />
+          <FocusNowCard style={styles.focus} />
+        </Stagger>
 
-          <BentoCard title="Today's Tasks" icon="list" span="full">
-            {isLoading ? (
-              <View style={{ gap: 10 }}>
-                <Skeleton height={56} radius={theme.radii.md} />
-                <Skeleton height={56} radius={theme.radii.md} />
-              </View>
-            ) : isError ? (
-              <ErrorState message="Couldn't load today's tasks." onRetry={() => refetch()} />
-            ) : total === 0 ? (
+        {nextUp ? (
+          <Stagger index={3} style={styles.section}>
+            <SectionHeader title="Next up" />
+            <NextUpCard task={nextUp} projectName={nextUpProject} />
+          </Stagger>
+        ) : null}
+
+        <Stagger index={4} style={styles.section}>
+          <SectionHeader
+            title="Today"
+            actionLabel={moreTasks > 0 ? `See all ${tasks?.length}` : 'See all'}
+            onAction={() => router.navigate('/tasks')}
+          />
+          {tasksLoading ? (
+            <Skeleton height={140} radius={theme.radii.lg} />
+          ) : tasksError ? (
+            <ErrorState message="Couldn't load today's tasks." onRetry={() => refetchTasks()} />
+          ) : todayTasks.length === 0 ? (
+            <Card style={styles.emptyCard}>
               <EmptyState
                 icon="sun"
-                title="Nothing scheduled today"
-                message="Enjoy your day, or add something to get ahead."
+                title="No tasks today 🎉"
+                message="Nothing on the list. Enjoy the space — or plan something."
               />
-            ) : (
-              <View>
-                {tasks!.slice(0, 5).map((task) => (
-                  <TaskListItem key={task.id} task={task} onToggle={handleToggle} />
+              <Button label="Add a task" icon="plus" size="sm" onPress={() => router.push('/modal/new-task')} />
+            </Card>
+          ) : (
+            <Card style={styles.groupCard}>
+              <View style={[styles.groupInner, { borderRadius: theme.radii.lg }]}>
+                {todayTasks.map((task, index) => (
+                  <Fragment key={task.id}>
+                    {index > 0 ? (
+                      <View style={[styles.separator, { backgroundColor: theme.colors.border }]} />
+                    ) : null}
+                    <TaskListItem task={task} onToggle={handleToggle} variant="grouped" />
+                  </Fragment>
                 ))}
               </View>
-            )}
-          </BentoCard>
+            </Card>
+          )}
+        </Stagger>
 
-          <BentoCard
-            title="Quick Note"
-            icon="file-text"
-            span="full"
-            onPress={() =>
-              mostRecentNote ? router.push(`/note/${mostRecentNote.id}`) : router.push('/(tabs)/notes')
-            }
-          >
-            {mostRecentNote ? (
-              <View style={{ gap: 4 }}>
-                <Text variant="titleMedium" numberOfLines={1}>
-                  {mostRecentNote.title.trim() || 'New Note'}
-                </Text>
-                <Text variant="bodySmall" color="textSecondary" numberOfLines={2}>
-                  {getPreviewText(mostRecentNote.body) || 'No additional text'}
-                </Text>
-              </View>
-            ) : (
-              <EmptyState icon="file-text" title="No notes yet" message="Tap to write your first note." />
-            )}
-          </BentoCard>
-        </View>
+        <Stagger index={5} style={styles.section}>
+          <SectionHeader title="Habits" onAction={() => router.push('/habits')} />
+          {dashboardHabits.length === 0 ? (
+            <GradientCard gradient={theme.gradients.lavenderPink} orbs="glow" contentStyle={styles.habitCta}>
+              <Text variant="titleLarge" style={styles.white}>
+                Start your first habit
+              </Text>
+              <Text variant="bodySmall" style={styles.whiteMuted}>
+                Every habit gets its own GitHub-style heatmap. Watch the squares fill in.
+              </Text>
+              <Button
+                label="Create a habit"
+                icon="plus"
+                variant="glass"
+                size="sm"
+                onPress={() => router.push('/modal/new-habit')}
+              />
+            </GradientCard>
+          ) : (
+            dashboardHabits.map((habit) => (
+              <HabitCard
+                key={habit.id}
+                habit={habit}
+                variant="compact"
+                onPress={() => router.push(`/habit/${habit.id}`)}
+              />
+            ))
+          )}
+        </Stagger>
+
+        <Stagger index={6}>
+          <ProductivityCard onPress={() => router.navigate('/stats')} />
+        </Stagger>
+
+        <Stagger index={7} style={styles.section}>
+          <SectionHeader title="Quick note" onAction={() => router.navigate('/notes')} />
+          <QuickNoteCard note={latestNote} />
+        </Stagger>
       </ScrollView>
 
-      <View style={[styles.fab, { bottom: insets.bottom + theme.spacing.xl }]}>
-        <IconButton
-          name="plus"
-          variant="filled"
-          size={56}
-          accessibilityLabel="Add task"
-          onPress={() => router.push('/modal/new-task')}
-        />
-      </View>
+      <StreakMilestoneWatcher />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: 20,
-    gap: 24,
+    gap: 20,
   },
-  greetingRow: {
+  bento: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
-  progressRow: {
-    flexDirection: 'row',
+  streak: {
+    flex: 1.3,
+  },
+  focus: {
+    flex: 1,
+  },
+  section: {
+    gap: 10,
+  },
+  groupCard: {
+    padding: 0,
+  },
+  groupInner: {
+    overflow: 'hidden',
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 56,
+  },
+  emptyCard: {
     alignItems: 'center',
-    gap: 16,
+    paddingBottom: 20,
   },
-  streakBody: {
-    gap: 2,
+  habitCta: {
+    gap: 8,
+    alignItems: 'flex-start',
   },
-  fab: {
-    position: 'absolute',
-    right: 20,
+  white: {
+    color: '#FFFFFF',
+  },
+  whiteMuted: {
+    color: 'rgba(255,255,255,0.9)',
   },
 });

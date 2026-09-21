@@ -1,5 +1,7 @@
 export { darkColors, gradients, lightColors } from './colors';
-export type { ColorToken, ThemeColors } from './colors';
+export type { ColorToken, GradientStops, ThemeColors, ThemeGradients } from './colors';
+export { HABIT_COLORS, HEATMAP_LEVEL_OPACITY, habitPalette, isHabitColor } from './habit-palette';
+export type { HabitColor, HabitSwatch } from './habit-palette';
 export { duration, easing, springs } from './motion';
 export { radii } from './radii';
 export type { RadiusToken } from './radii';

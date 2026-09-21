@@ -1,5 +1,6 @@
 import type { RepeatRule } from '@/domain/entities/task';
-import { toLocalIsoDate } from '@/utils/date';
+
+import { buildCalendarColumns } from './heatmap';
 
 export interface StreakStats {
   current: number;
@@ -105,6 +106,19 @@ export function countExpectedOccurrences(
   return count;
 }
 
+export const STREAK_MILESTONES = [7, 14, 30, 50, 100, 200, 365] as const;
+
+/**
+ * The milestone to celebrate now, if any. A streak that has fallen below the
+ * last celebrated milestone has been broken and restarted, so its earlier
+ * milestones are fair game again.
+ */
+export function pendingMilestone(current: number, lastCelebrated: number): number | null {
+  const floor = current < lastCelebrated ? 0 : lastCelebrated;
+  const reached = STREAK_MILESTONES.filter((milestone) => milestone <= current && milestone > floor);
+  return reached.length > 0 ? reached[reached.length - 1] : null;
+}
+
 export function computeCompletionRate(totalCompletions: number, expectedOccurrences: number): number {
   if (expectedOccurrences <= 0) return 0;
   return Math.min(1, totalCompletions / expectedOccurrences);
@@ -121,34 +135,7 @@ export function buildContributionGrid(
   todayIso: string,
 ): ContributionDay[][] {
   const completed = new Set(dates);
-  const today = new Date(`${todayIso}T00:00:00`);
-
-  // Find the Monday on/before today, then step back to cover the full grid.
-  const mondayOffset = (today.getDay() + 6) % 7;
-  const gridEnd = new Date(today);
-  gridEnd.setDate(gridEnd.getDate() - mondayOffset + 6);
-
-  const totalDays = weeks * 7;
-  const gridStart = new Date(gridEnd);
-  gridStart.setDate(gridStart.getDate() - totalDays + 1);
-
-  const columns: ContributionDay[][] = [];
-  const cursor = new Date(gridStart);
-
-  for (let w = 0; w < weeks; w++) {
-    const column: ContributionDay[] = [];
-    for (let d = 0; d < 7; d++) {
-      const iso = toLocalIsoDate(cursor);
-      column.push({
-        date: iso,
-        completed: completed.has(iso),
-        isToday: iso === todayIso,
-        isFuture: iso > todayIso,
-      });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    columns.push(column);
-  }
-
-  return columns;
+  return buildCalendarColumns(weeks, todayIso).map((week) =>
+    week.map((cell) => ({ ...cell, completed: completed.has(cell.date) })),
+  );
 }

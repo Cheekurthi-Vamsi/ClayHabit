@@ -48,7 +48,10 @@ export function CalendarScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + theme.spacing.md }]}>
-        <Text variant="displayMedium">Calendar</Text>
+        <View style={styles.titleRow}>
+          <IconButton name="arrow-left" variant="ghost" accessibilityLabel="Back" onPress={() => router.back()} />
+          <Text variant="displayMedium">Calendar</Text>
+        </View>
         <IconButton
           name="plus"
           variant="filled"
@@ -147,6 +150,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: -10,
   },
   content: {
     paddingHorizontal: 20,

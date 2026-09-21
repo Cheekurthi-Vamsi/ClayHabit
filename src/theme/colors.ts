@@ -20,6 +20,9 @@ export interface ThemeColors {
   secondaryMuted: string;
 
   accentLavender: string;
+  accentPurple: string;
+  accentBlue: string;
+  accentPink: string;
   accentMint: string;
   accentCyan: string;
 
@@ -40,92 +43,114 @@ export const lightColors: ThemeColors = {
   background: '#F7F8FC',
   backgroundElevated: '#FFFFFF',
   surface: '#FFFFFF',
-  surfaceMuted: '#F0F1F7',
-  surfacePressed: '#E6E8F5',
-  border: '#E3E5F0',
-  borderStrong: '#CFD2E8',
+  surfaceMuted: '#F1F2F8',
+  surfacePressed: '#E8EAF4',
+  border: '#ECEDF4',
+  borderStrong: '#D9DBE8',
 
-  textPrimary: '#14152B',
-  textSecondary: '#6B6F8D',
-  textTertiary: '#9A9DB8',
+  textPrimary: '#171821',
+  textSecondary: '#7C7F8A',
+  textTertiary: '#A6A9B6',
   textInverse: '#FFFFFF',
 
-  primary: '#6C5CE7',
-  primaryMuted: '#EFEBFF',
+  primary: '#6C63FF',
+  primaryMuted: '#EEEDFF',
   onPrimary: '#FFFFFF',
 
-  secondary: '#3E8BFF',
-  secondaryMuted: '#E7F1FF',
+  secondary: '#6ED7FF',
+  secondaryMuted: '#E6F8FF',
 
-  accentLavender: '#B79CFF',
-  accentMint: '#22C79A',
-  accentCyan: '#22B8D0',
+  accentLavender: '#A78BFA',
+  accentPurple: '#8B7CFF',
+  accentBlue: '#4F9DFF',
+  accentPink: '#F472B6',
+  accentMint: '#8FE3CF',
+  accentCyan: '#6ED7FF',
 
-  success: '#2FAF6E',
-  successMuted: '#E4F7ED',
-  warning: '#E39A1B',
-  warningMuted: '#FCF1DC',
-  error: '#E9535A',
-  errorMuted: '#FCE7E8',
+  success: '#2EBD85',
+  successMuted: '#E3F7EF',
+  warning: '#F5A524',
+  warningMuted: '#FEF3DD',
+  error: '#F0526B',
+  errorMuted: '#FDE6EA',
 
-  overlay: 'rgba(20, 21, 43, 0.4)',
-  shadow: 'rgba(30, 32, 67, 0.12)',
+  overlay: 'rgba(23, 24, 33, 0.35)',
+  shadow: 'rgba(76, 70, 160, 0.10)',
 };
 
 export const darkColors: ThemeColors = {
-  background: '#0D0E1A',
-  backgroundElevated: '#15162A',
-  surface: '#181A31',
-  surfaceMuted: '#20223D',
-  surfacePressed: '#282B4C',
-  border: '#2B2E4C',
-  borderStrong: '#383C63',
+  background: '#0B0B14',
+  backgroundElevated: '#13131F',
+  surface: '#171726',
+  surfaceMuted: '#1F1F33',
+  surfacePressed: '#292942',
+  border: '#262640',
+  borderStrong: '#34345A',
 
-  textPrimary: '#F4F4FB',
-  textSecondary: '#A7AAC9',
-  textTertiary: '#71749B',
-  textInverse: '#14152B',
+  textPrimary: '#F5F5FA',
+  textSecondary: '#A3A5BF',
+  textTertiary: '#6E7091',
+  textInverse: '#171821',
 
-  primary: '#A594FF',
-  primaryMuted: '#292352',
-  onPrimary: '#14152B',
+  primary: '#8B84FF',
+  primaryMuted: '#25224A',
+  onPrimary: '#FFFFFF',
 
-  secondary: '#6FB6FF',
-  secondaryMuted: '#1B2C4D',
+  secondary: '#6ED7FF',
+  secondaryMuted: '#10303F',
 
-  accentLavender: '#C9B6FF',
-  accentMint: '#3FE0AE',
-  accentCyan: '#3FCFE6',
+  accentLavender: '#B9A3FF',
+  accentPurple: '#9D90FF',
+  accentBlue: '#74B4FF',
+  accentPink: '#F78CC6',
+  accentMint: '#8FE3CF',
+  accentCyan: '#6ED7FF',
 
-  success: '#3FD98C',
-  successMuted: '#153826',
+  success: '#3FD99A',
+  successMuted: '#0F3326',
   warning: '#FFB94D',
   warningMuted: '#3A2C10',
-  error: '#FF7A7E',
-  errorMuted: '#3B1B1D',
+  error: '#FF6F86',
+  errorMuted: '#3B1620',
 
-  overlay: 'rgba(2, 3, 12, 0.6)',
-  shadow: 'rgba(0, 0, 0, 0.4)',
+  overlay: 'rgba(0, 0, 0, 0.6)',
+  shadow: 'rgba(0, 0, 0, 0.45)',
 };
 
+export type GradientStops = readonly [string, string, ...string[]];
+
 export interface ThemeGradients {
-  primary: readonly [string, string];
-  secondary: readonly [string, string];
-  lavenderPink: readonly [string, string];
-  mintCyan: readonly [string, string];
+  /** Purple → blue. Primary CTAs, progress fills, active nav indicator. */
+  primary: GradientStops;
+  /** Blue → cyan. Focus-related surfaces. */
+  secondary: GradientStops;
+  lavenderPink: GradientStops;
+  mintCyan: GradientStops;
+  /** Pink → purple. Streak card. */
+  pinkPurple: GradientStops;
+  /** Pink → purple → blue. The app's signature gradient (center + button). */
+  aurora: GradientStops;
+  /** Barely-there blue/purple wash for large hero surfaces with dark text on top. */
+  heroSoft: GradientStops;
 }
 
 export const gradients: { light: ThemeGradients; dark: ThemeGradients } = {
   light: {
-    primary: ['#7C6CF5', '#3E8BFF'],
-    secondary: ['#3E8BFF', '#22B8D0'],
-    lavenderPink: ['#B79CFF', '#FF9CC7'],
-    mintCyan: ['#22C79A', '#22B8D0'],
+    primary: ['#8B7CFF', '#65C7FF'],
+    secondary: ['#4F9DFF', '#6ED7FF'],
+    lavenderPink: ['#C4B5FD', '#F9A8D4'],
+    mintCyan: ['#8FE3CF', '#6ED7FF'],
+    pinkPurple: ['#F472B6', '#8B7CFF'],
+    aurora: ['#F472B6', '#A78BFA', '#65C7FF'],
+    heroSoft: ['#EEEBFF', '#F5EEFF', '#E6F5FF'],
   },
   dark: {
-    primary: ['#8B7BFF', '#5FA6FF'],
-    secondary: ['#5FA6FF', '#3FCFE6'],
-    lavenderPink: ['#C9B6FF', '#FFA9D6'],
-    mintCyan: ['#3FE0AE', '#3FCFE6'],
+    primary: ['#7B6CF5', '#4FA9E8'],
+    secondary: ['#3F83E0', '#4FBFE3'],
+    lavenderPink: ['#8E78E0', '#D877AE'],
+    mintCyan: ['#4FB89F', '#4FBFE3'],
+    pinkPurple: ['#D9579C', '#7B6CF5'],
+    aurora: ['#D9579C', '#8E78E0', '#4FA9E8'],
+    heroSoft: ['#1C1936', '#221A39', '#142336'],
   },
 };

@@ -3,7 +3,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
-import { useAppTheme } from '@/theme';
+import { useAppTheme, type GradientStops } from '@/theme';
 
 import { Card } from './card';
 import { Icon, type IconName } from './icon';
@@ -17,7 +17,7 @@ interface BentoCardProps {
   span?: BentoSpan;
   onPress?: () => void;
   children: React.ReactNode;
-  accentGradient?: readonly [string, string];
+  accentGradient?: GradientStops;
   entranceDelay?: number;
   style?: StyleProp<ViewStyle>;
 }

@@ -356,10 +356,6 @@ export async function getStreakDates(db: SQLiteDatabase, seriesId: string): Prom
   return completionRepository.listDatesForSeries(db, seriesId);
 }
 
-export async function getOverallCompletionDates(db: SQLiteDatabase): Promise<string[]> {
-  return completionRepository.listAllDates(db);
-}
-
 export async function seedIfEmpty(db: SQLiteDatabase): Promise<void> {
   const count = await countTable(db);
   if (count > 0) return;

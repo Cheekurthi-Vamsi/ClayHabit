@@ -12,7 +12,7 @@ import {
   requestPermission,
   scheduleTaskReminder,
 } from '@/lib/notifications/notification-service';
-import { combineDateAndTime, todayIso } from '@/utils/date';
+import { addDaysIso, combineDateAndTime, todayIso } from '@/utils/date';
 
 const keys = {
   today: ['tasks', 'today'] as const,
@@ -46,6 +46,12 @@ export async function scheduleReminderForTask(
     return;
   }
 
+  // A trigger in the past would fire immediately; keep the preference but schedule nothing.
+  if (date.getTime() <= Date.now()) {
+    await taskRepository.setReminder(db, task.id, { enabled: true, time, notificationId: null });
+    return;
+  }
+
   const notificationId = await scheduleTaskReminder({
     taskId: task.id,
     title: task.title,
@@ -54,6 +60,31 @@ export async function scheduleReminderForTask(
   });
 
   await taskRepository.setReminder(db, task.id, { enabled: true, time, notificationId });
+}
+
+/**
+ * Brings the OS-scheduled notification in line with the task's current
+ * state: a completed, archived, or reminder-less task has nothing pending;
+ * anything else gets (re)scheduled for its current due date. The reminder
+ * *preference* survives completion, so un-completing restores it.
+ */
+async function syncReminder(db: SQLiteDatabase, id: string): Promise<void> {
+  const task = await taskRepository.getById(db, id);
+  if (!task) return;
+
+  if (task.isCompleted || task.isArchived || !task.reminderEnabled || !task.reminderTime) {
+    if (task.notificationId) {
+      await cancelReminder(task.notificationId);
+      await taskRepository.setReminder(db, id, {
+        enabled: task.reminderEnabled,
+        time: task.reminderTime,
+        notificationId: null,
+      });
+    }
+    return;
+  }
+
+  await scheduleReminderForTask(db, task, true, task.reminderTime);
 }
 
 export function useTodayTasks() {
@@ -92,8 +123,10 @@ export function useUpdateTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: UpdateTaskInput }) =>
-      taskRepository.update(db, id, input),
+    mutationFn: async ({ id, input }: { id: string; input: UpdateTaskInput }) => {
+      await taskRepository.update(db, id, input);
+      if (input.dueDate !== undefined) await syncReminder(db, id);
+    },
     onSuccess: () => invalidateTasks(queryClient),
   });
 }
@@ -103,16 +136,34 @@ export function useToggleTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, isCompleted }: { id: string; isCompleted: boolean }) =>
-      taskRepository.setCompleted(db, id, isCompleted),
-    onSuccess: async (result) => {
+    mutationFn: async ({ id, isCompleted }: { id: string; isCompleted: boolean }) => {
+      const result = await taskRepository.setCompleted(db, id, isCompleted);
+      await syncReminder(db, id);
       const next = result.nextOccurrence;
       if (next?.reminderEnabled && next.reminderTime) {
         await scheduleReminderForTask(db, next, true, next.reminderTime);
       }
+      return result;
+    },
+    onSuccess: () => {
       invalidateTasks(queryClient);
       queryClient.invalidateQueries({ queryKey: ['streaks'] });
+      queryClient.invalidateQueries({ queryKey: ['activity'] });
     },
+  });
+}
+
+/** Pushes a task to tomorrow, moving its reminder along with it. */
+export function useSnoozeTask() {
+  const db = useSQLiteContext();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await taskRepository.update(db, id, { dueDate: addDaysIso(todayIso(), 1) });
+      await syncReminder(db, id);
+    },
+    onSuccess: () => invalidateTasks(queryClient),
   });
 }
 
@@ -150,8 +201,10 @@ export function useArchiveTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, isArchived }: { id: string; isArchived: boolean }) =>
-      taskRepository.setArchived(db, id, isArchived),
+    mutationFn: async ({ id, isArchived }: { id: string; isArchived: boolean }) => {
+      await taskRepository.setArchived(db, id, isArchived);
+      await syncReminder(db, id);
+    },
     onSuccess: () => invalidateTasks(queryClient),
   });
 }
@@ -161,8 +214,16 @@ export function useDeleteTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => taskRepository.remove(db, id),
-    onSuccess: () => invalidateTasks(queryClient),
+    mutationFn: async (id: string) => {
+      const task = await taskRepository.getById(db, id);
+      await cancelReminder(task?.notificationId ?? null);
+      await taskRepository.remove(db, id);
+    },
+    onSuccess: () => {
+      invalidateTasks(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['activity'] });
+      queryClient.invalidateQueries({ queryKey: ['streaks'] });
+    },
   });
 }
 

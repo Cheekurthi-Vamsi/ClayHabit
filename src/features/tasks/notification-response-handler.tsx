@@ -41,6 +41,7 @@ export function NotificationResponseHandler() {
         }
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         queryClient.invalidateQueries({ queryKey: ['streaks'] });
+        queryClient.invalidateQueries({ queryKey: ['activity'] });
         return;
       }
 
