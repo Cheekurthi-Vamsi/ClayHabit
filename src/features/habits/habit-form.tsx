@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button, Chip, Icon, IconButton, Text } from '@/components/ui';
 import type { NewHabitInput, WeekdayMask } from '@/domain/entities/habit';
-import { EVERY_DAY, isValidWeekdayMask } from '@/domain/services/habit-engine';
+import { describeSchedule, EVERY_DAY, isValidWeekdayMask } from '@/domain/services/habit-engine';
 import { HABIT_COLORS, habitPalette, useAppTheme, type HabitColor } from '@/theme';
 
-const EMOJIS = ['💧', '🏃', '📚', '🧘', '💪', '🥗', '😴', '✍️', '🎯', '💻', '🎸', '🌱', '🧠', '☀️', '🚭', '🙏'];
+import { HabitGlyph } from './habit-glyph';
+import { HABIT_TEMPLATES, type HabitTemplate } from './habit-templates';
+import { IconPicker } from './icon-picker';
+import { getHabitIcon } from './icons/lookup';
+
+const DEFAULT_ICON = 'line:sparkles';
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const PRESETS: { label: string; mask: WeekdayMask }[] = [
@@ -21,7 +26,41 @@ interface HabitFormProps {
   initial?: Partial<NewHabitInput>;
   submitLabel: string;
   submitting?: boolean;
+  /** Offer one-tap templates above the form (for new habits). */
+  showTemplates?: boolean;
   onSubmit: (input: NewHabitInput) => void;
+}
+
+function TemplateCard({ template, onPress }: { template: HabitTemplate; onPress: () => void }) {
+  const theme = useAppTheme();
+  const def = getHabitIcon(template.icon);
+  const meta =
+    template.targetPerDay > 1 ? `${template.targetPerDay}× a day` : describeSchedule(template.daysOfWeek);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Use template: ${template.name}, ${meta}`}
+      style={({ pressed }) => [
+        styles.template,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border,
+          borderRadius: theme.radii.md,
+          opacity: pressed ? 0.75 : 1,
+        },
+      ]}
+    >
+      <HabitGlyph icon={template.icon} emoji={def?.emoji ?? '✨'} color={template.color} size={34} />
+      <Text variant="labelLarge" numberOfLines={2}>
+        {template.name}
+      </Text>
+      <Text variant="caption" color="textTertiary" numberOfLines={1}>
+        {meta}
+      </Text>
+    </Pressable>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -35,15 +74,37 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function HabitForm({ initial, submitLabel, submitting = false, onSubmit }: HabitFormProps) {
+export function HabitForm({
+  initial,
+  submitLabel,
+  submitting = false,
+  showTemplates = false,
+  onSubmit,
+}: HabitFormProps) {
   const theme = useAppTheme();
+  // Editing keeps whatever the habit had (including no icon); a new habit starts with sparkles.
+  const startIcon = initial ? (initial.icon ?? null) : DEFAULT_ICON;
   const [name, setName] = useState(initial?.name ?? '');
-  const [emoji, setEmoji] = useState(initial?.emoji ?? EMOJIS[0]);
+  const [icon, setIcon] = useState<string | null>(startIcon);
+  const [emoji, setEmoji] = useState(initial?.emoji ?? getHabitIcon(startIcon)?.emoji ?? '✨');
   const [color, setColor] = useState<HabitColor>(initial?.color ?? 'purple');
   const [target, setTarget] = useState(initial?.targetPerDay ?? 1);
   const [mask, setMask] = useState<WeekdayMask>(initial?.daysOfWeek ?? EVERY_DAY);
+  // Bumped when a template is applied so the picker re-opens on the template's icon.
+  const [pickerKey, setPickerKey] = useState(0);
 
   const canSubmit = name.trim().length > 0 && isValidWeekdayMask(mask) && !submitting;
+
+  const applyTemplate = (template: HabitTemplate) => {
+    Haptics.selectionAsync();
+    setName(template.name);
+    setIcon(template.icon);
+    setEmoji(getHabitIcon(template.icon)?.emoji ?? '✨');
+    setColor(template.color);
+    setTarget(template.targetPerDay);
+    setMask(template.daysOfWeek);
+    setPickerKey((key) => key + 1);
+  };
 
   const toggleDay = (index: number) => {
     const next = mask
@@ -59,47 +120,51 @@ export function HabitForm({ initial, submitLabel, submitting = false, onSubmit }
 
   return (
     <View style={styles.form}>
+      {showTemplates ? (
+        <Field label="START FROM A TEMPLATE">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.templates}
+            keyboardShouldPersistTaps="handled"
+          >
+            {HABIT_TEMPLATES.map((template) => (
+              <TemplateCard key={template.name} template={template} onPress={() => applyTemplate(template)} />
+            ))}
+          </ScrollView>
+        </Field>
+      ) : null}
+
       <Field label="NAME">
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="e.g. Drink water, Read 20 pages"
-          placeholderTextColor={theme.colors.textTertiary}
-          maxLength={60}
-          accessibilityLabel="Habit name"
-          style={[
-            styles.input,
-            theme.typography.bodyLarge,
-            { color: theme.colors.textPrimary, backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.radii.md },
-          ]}
-        />
+        <View style={styles.nameRow}>
+          <HabitGlyph icon={icon} emoji={emoji} color={color} size={50} />
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. Drink water, Read 20 pages"
+            placeholderTextColor={theme.colors.textTertiary}
+            maxLength={60}
+            accessibilityLabel="Habit name"
+            style={[
+              styles.input,
+              theme.typography.bodyLarge,
+              { color: theme.colors.textPrimary, backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.radii.md },
+            ]}
+          />
+        </View>
       </Field>
 
       <Field label="ICON">
-        <View style={styles.wrap}>
-          {EMOJIS.map((item) => {
-            const selected = item === emoji;
-            return (
-              <Pressable
-                key={item}
-                onPress={() => setEmoji(item)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`Icon ${item}`}
-                style={[
-                  styles.emojiCell,
-                  {
-                    borderRadius: theme.radii.md,
-                    backgroundColor: selected ? `${habitPalette[color].base}24` : theme.colors.surfaceMuted,
-                    borderColor: selected ? habitPalette[color].base : 'transparent',
-                  },
-                ]}
-              >
-                <Text style={styles.emojiText}>{item}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <IconPicker
+          key={pickerKey}
+          icon={icon}
+          emoji={emoji}
+          color={color}
+          onChange={(nextIcon, nextEmoji) => {
+            setIcon(nextIcon);
+            setEmoji(nextEmoji);
+          }}
+        />
       </Field>
 
       <Field label="COLOR">
@@ -199,7 +264,7 @@ export function HabitForm({ initial, submitLabel, submitting = false, onSubmit }
         disabled={!canSubmit}
         loading={submitting}
         onPress={() =>
-          onSubmit({ name: name.trim(), emoji, color, targetPerDay: target, daysOfWeek: mask })
+          onSubmit({ name: name.trim(), emoji, icon, color, targetPerDay: target, daysOfWeek: mask })
         }
       />
     </View>
@@ -214,24 +279,29 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   input: {
+    flex: 1,
     paddingVertical: 14,
     paddingHorizontal: 16,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  templates: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  template: {
+    width: 118,
+    gap: 6,
+    padding: 12,
+    borderWidth: 1,
   },
   wrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  emojiCell: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  emojiText: {
-    fontSize: 22,
-    lineHeight: 28,
   },
   swatchRing: {
     padding: 3,

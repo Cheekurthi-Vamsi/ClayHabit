@@ -33,6 +33,7 @@ function habit(overrides: Partial<HabitWithLogs>): HabitWithLogs {
     id: 'h',
     name: 'Habit',
     emoji: '✨',
+    icon: null,
     color: 'purple',
     targetPerDay: 1,
     daysOfWeek: '1111111',

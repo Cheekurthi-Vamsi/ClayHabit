@@ -1,4 +1,5 @@
 import * as activityRepository from '@/data/repositories/activity-repository';
+import * as focusSessionRepository from '@/data/repositories/focus-session-repository';
 import * as habitRepository from '@/data/repositories/habit-repository';
 import * as taskRepository from '@/data/repositories/task-repository';
 import { todayIso } from '@/utils/date';
@@ -91,6 +92,31 @@ describe('habitRepository', () => {
     expect(updated?.color).toBe('blue');
     expect(updated?.daysOfWeek).toBe('1010100');
   });
+
+  it('stores an icon, keeps it through unrelated edits, and can clear it', async () => {
+    const db = await setup();
+    const plain = await habitRepository.create(db, { name: 'Legacy', emoji: '🙂', color: 'mint' });
+    expect(plain.icon).toBeNull();
+
+    const habit = await habitRepository.create(db, {
+      name: 'Run',
+      emoji: '🏃',
+      icon: 'line:run',
+      color: 'pink',
+    });
+    expect((await habitRepository.getById(db, habit.id))?.icon).toBe('line:run');
+
+    await habitRepository.update(db, habit.id, { name: 'Morning run' });
+    expect((await habitRepository.getById(db, habit.id))?.icon).toBe('line:run');
+
+    await habitRepository.update(db, habit.id, { icon: 'emoji:person-running' });
+    expect((await habitRepository.getById(db, habit.id))?.icon).toBe('emoji:person-running');
+
+    await habitRepository.update(db, habit.id, { icon: null, emoji: '🔥' });
+    const cleared = await habitRepository.getById(db, habit.id);
+    expect(cleared?.icon).toBeNull();
+    expect(cleared?.emoji).toBe('🔥');
+  });
 });
 
 describe('activityRepository', () => {
@@ -116,5 +142,52 @@ describe('activityRepository', () => {
     await habitRepository.setCount(db, habit.id, '2026-09-20', 1);
 
     expect(await activityRepository.activeDates(db)).toEqual(['2026-09-19', '2026-09-20']);
+  });
+
+  it('counts completed tasks by priority, ignoring open ones', async () => {
+    const db = await setup();
+    const today = todayIso();
+    const urgent = await taskRepository.create(db, { title: 'Fire', priority: 'urgent', dueDate: today });
+    const high = await taskRepository.create(db, { title: 'Big', priority: 'high', dueDate: today });
+    const high2 = await taskRepository.create(db, { title: 'Big 2', priority: 'high', dueDate: today });
+    await taskRepository.create(db, { title: 'Still open', priority: 'low', dueDate: today });
+    for (const task of [urgent, high, high2]) {
+      await taskRepository.setCompleted(db, task.id, true);
+    }
+
+    expect(await activityRepository.completedByPriority(db, today)).toEqual({
+      urgent: 1,
+      high: 2,
+      medium: 0,
+      low: 0,
+    });
+  });
+});
+
+describe('focusSessionRepository.minutesByDay', () => {
+  it('sums finished sessions per local day and skips unfinished ones', async () => {
+    const db = await setup();
+    const insert = (id: string, startedAt: Date, minutes: number | null, ended: boolean) =>
+      db.runAsync(
+        `INSERT INTO focus_sessions (id, task_id, planned_minutes, actual_minutes, started_at, ended_at, is_completed)
+         VALUES (?, NULL, 25, ?, ?, ?, 1)`,
+        id,
+        minutes,
+        startedAt.toISOString(),
+        ended ? startedAt.toISOString() : null,
+      );
+
+    // Local-time dates, so the test holds in any timezone.
+    await insert('a', new Date(2026, 8, 20, 9, 0), 25, true);
+    await insert('b', new Date(2026, 8, 20, 21, 30), 50, true);
+    await insert('c', new Date(2026, 8, 21, 8, 0), 30, true);
+    await insert('d', new Date(2026, 8, 21, 10, 0), null, false);
+
+    const byDay = await focusSessionRepository.minutesByDay(
+      db,
+      new Date(2026, 8, 20).toISOString(),
+      new Date(2026, 8, 22).toISOString(),
+    );
+    expect(byDay).toEqual({ '2026-09-20': 75, '2026-09-21': 30 });
   });
 });

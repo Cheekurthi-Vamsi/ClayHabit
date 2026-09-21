@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { FocusSession, NewFocusSessionInput } from '@/domain/entities/focus-session';
+import { toLocalIsoDate } from '@/utils/date';
 import { generateId } from '@/utils/id';
 
 interface FocusSessionRow {
@@ -84,6 +85,27 @@ export async function totalMinutesBetween(
     endInstantIso,
   );
   return row?.total ?? 0;
+}
+
+/** Finished focus minutes per local start date, for sessions started in [start, end). */
+export async function minutesByDay(
+  db: SQLiteDatabase,
+  startInstantIso: string,
+  endInstantIso: string,
+): Promise<Record<string, number>> {
+  const rows = await db.getAllAsync<{ started_at: string; actual_minutes: number | null }>(
+    `SELECT started_at, actual_minutes FROM focus_sessions
+     WHERE started_at >= ? AND started_at < ? AND ended_at IS NOT NULL`,
+    startInstantIso,
+    endInstantIso,
+  );
+
+  const byDay: Record<string, number> = {};
+  for (const row of rows) {
+    const date = toLocalIsoDate(new Date(row.started_at));
+    byDay[date] = (byDay[date] ?? 0) + (row.actual_minutes ?? 0);
+  }
+  return byDay;
 }
 
 export async function totalMinutesSince(db: SQLiteDatabase, sinceIso: string): Promise<number> {

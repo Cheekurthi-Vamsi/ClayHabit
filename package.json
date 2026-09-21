@@ -60,7 +60,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "icons:extract": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/extract-habit-icons.mjs"
   },
   "private": true,
   "jest": {

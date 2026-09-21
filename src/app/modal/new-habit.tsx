@@ -23,6 +23,7 @@ export default function NewHabitModal() {
       >
         <HabitForm
           submitLabel="Create Habit"
+          showTemplates
           submitting={createHabit.isPending}
           onSubmit={(input) => createHabit.mutate(input, { onSuccess: () => router.back() })}
         />

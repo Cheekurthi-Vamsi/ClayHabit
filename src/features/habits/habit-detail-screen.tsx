@@ -26,6 +26,7 @@ import { habitPalette, useAppTheme } from '@/theme';
 import { addDaysIso, toLocalIsoDate, todayIso } from '@/utils/date';
 
 import { HabitForm } from './habit-form';
+import { HabitGlyph } from './habit-glyph';
 import { useArchiveHabit, useDeleteHabit, useHabit, useSetHabitCount, useUpdateHabit } from './hooks';
 
 export function HabitDetailScreen() {
@@ -132,9 +133,7 @@ function HabitDetailBody({ habit }: { habit: HabitWithLogs }) {
 
         <GradientCard gradient={swatch.gradient} orbs="glow" contentStyle={styles.hero}>
           <View style={styles.heroTop}>
-            <View style={styles.heroEmoji}>
-              <Text style={styles.heroEmojiText}>{habit.emoji}</Text>
-            </View>
+            <HabitGlyph icon={habit.icon} emoji={habit.emoji} color={habit.color} size={56} onGradient />
             <View style={styles.flex}>
               <Text variant="headlineMedium" style={styles.white} numberOfLines={2}>
                 {habit.name}
@@ -281,18 +280,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-  },
-  heroEmoji: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroEmojiText: {
-    fontSize: 30,
-    lineHeight: 36,
   },
   heroStreak: {
     gap: 2,

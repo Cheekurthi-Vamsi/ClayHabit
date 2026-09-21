@@ -9,7 +9,10 @@ export type WeekdayMask = string;
 export interface Habit {
   id: string;
   name: string;
+  /** Plain-text glyph. Always set, and shown whenever `icon` is null or unknown. */
   emoji: string;
+  /** Bundled icon id (`line:run`, `emoji:droplet`), or null to show `emoji`. */
+  icon: string | null;
   color: HabitColor;
   targetPerDay: number;
   daysOfWeek: WeekdayMask;
@@ -29,6 +32,7 @@ export interface HabitWithLogs extends Habit {
 export interface NewHabitInput {
   name: string;
   emoji: string;
+  icon?: string | null;
   color: HabitColor;
   targetPerDay?: number;
   daysOfWeek?: WeekdayMask;
@@ -37,6 +41,8 @@ export interface NewHabitInput {
 export interface UpdateHabitInput {
   name?: string;
   emoji?: string;
+  /** `null` clears the icon back to the plain emoji; `undefined` leaves it alone. */
+  icon?: string | null;
   color?: HabitColor;
   targetPerDay?: number;
   daysOfWeek?: WeekdayMask;

@@ -26,36 +26,18 @@ import { computeStreakStats } from '@/domain/services/streak-engine';
 import { habitPalette, useAppTheme, type ThemeGradients } from '@/theme';
 import { addDaysIso, startOfWeekIso, toLocalIsoDate, todayIso } from '@/utils/date';
 
-import { ProductivityCard } from '../dashboard/productivity-card';
 import { useActivity } from '../dashboard/hooks';
+import { HabitGlyph } from '../habits/habit-glyph';
 import { useHabits } from '../habits/hooks';
 import { useOverallStreak } from '../streaks/hooks';
+import { FocusTrendCard } from './focus-trend-card';
+import { HabitRingsCard } from './habit-rings-card';
 import { useCompletionHours, useFocusMinutesBetween } from './hooks';
-import {
-  bestWeekday,
-  formatHour,
-  habitsCompletionRate,
-  peakHour,
-  percentChange,
-  sumRange,
-} from './insights';
-
-function InsightTile({ icon, label, value }: { icon: IconName; label: string; value: string }) {
-  const theme = useAppTheme();
-  return (
-    <Card style={styles.insight}>
-      <View style={[styles.insightIcon, { backgroundColor: theme.colors.primaryMuted }]}>
-        <Icon name={icon} size={16} color={theme.colors.primary} />
-      </View>
-      <Text variant="caption" color="textSecondary">
-        {label.toUpperCase()}
-      </Text>
-      <Text variant="titleLarge" numberOfLines={1}>
-        {value}
-      </Text>
-    </Card>
-  );
-}
+import { habitsCompletionRate, percentChange, sumRange } from './insights';
+import { MomentumCard } from './momentum-card';
+import { PeakHoursCard } from './peak-hours-card';
+import { PriorityMixCard } from './priority-mix-card';
+import { WeeklyRhythmCard } from './weekly-rhythm-card';
 
 function HabitStatRow({ habit, onPress }: { habit: HabitWithLogs; onPress: () => void }) {
   const theme = useAppTheme();
@@ -79,7 +61,7 @@ function HabitStatRow({ habit, onPress }: { habit: HabitWithLogs; onPress: () =>
       accessibilityLabel={`${habit.name}: ${Math.round(rate * 100)} percent over 30 days, ${stats.currentStreak} day streak`}
       style={({ pressed }) => [styles.habitRow, pressed && { opacity: 0.7 }]}
     >
-      <Text style={styles.habitEmoji}>{habit.emoji}</Text>
+      <HabitGlyph icon={habit.icon} emoji={habit.emoji} color={habit.color} size={36} />
       <View style={styles.habitBody}>
         <View style={styles.rowBetween}>
           <Text variant="titleMedium" numberOfLines={1} style={styles.flex}>
@@ -159,8 +141,6 @@ export function StatsScreen() {
   const yearTotal = sumRange(totals, yearStart, today);
   const maxDay = Math.max(0, ...Object.values(totals));
   const maxStreak = computeStreakStats(activeDates, 'daily', today).best;
-  const topDay = bestWeekday(totals, today);
-  const topHour = peakHour(hours ?? []);
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
@@ -229,10 +209,26 @@ export function StatsScreen() {
         </Stagger>
 
         <Stagger index={2}>
-          <ProductivityCard />
+          <MomentumCard activity={activity.data} loading={activity.isLoading} />
         </Stagger>
 
-        <Stagger index={3} style={styles.section}>
+        <Stagger index={3}>
+          <WeeklyRhythmCard totals={totals} />
+        </Stagger>
+
+        <Stagger index={4}>
+          <PeakHoursCard hours={hours ?? []} />
+        </Stagger>
+
+        <Stagger index={5}>
+          <PriorityMixCard />
+        </Stagger>
+
+        <Stagger index={6}>
+          <FocusTrendCard />
+        </Stagger>
+
+        <Stagger index={7} style={styles.section}>
           <SectionHeader title="Activity" />
           <Card style={styles.heatmapCard}>
             {activity.isLoading ? (
@@ -277,14 +273,10 @@ export function StatsScreen() {
           </Card>
         </Stagger>
 
-        <Stagger index={4} style={styles.gridRow}>
-          <InsightTile icon="calendar" label="Best day" value={topDay ?? '—'} />
-          <InsightTile icon="clock" label="Peak hour" value={topHour === null ? '—' : formatHour(topHour)} />
-        </Stagger>
-
         {(habits?.length ?? 0) > 0 ? (
-          <Stagger index={5} style={styles.section}>
+          <Stagger index={8} style={styles.section}>
             <SectionHeader title="Habits · 30 days" onAction={() => router.push('/habits')} />
+            <HabitRingsCard habits={habits!} />
             <Card style={styles.habitList}>
               {habits!.map((habit, index) => (
                 <View key={habit.id}>
@@ -296,7 +288,7 @@ export function StatsScreen() {
           </Stagger>
         ) : null}
 
-        <Stagger index={6} style={styles.section}>
+        <Stagger index={9} style={styles.section}>
           <SectionHeader title="Explore" />
           <View style={styles.gridRow}>
             <ExploreTile icon="calendar" label="Calendar" gradient="primary" onPress={() => router.push('/calendar')} />
@@ -342,18 +334,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  insight: {
-    flex: 1,
-    gap: 4,
-  },
-  insightIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
   habitList: {
     paddingVertical: 4,
   },
@@ -362,10 +342,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 12,
-  },
-  habitEmoji: {
-    fontSize: 24,
-    lineHeight: 30,
   },
   habitBody: {
     flex: 1,

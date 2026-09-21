@@ -10,10 +10,11 @@ import {
   nextTapCount,
 } from '@/domain/services/habit-engine';
 import { buildCalendarColumns } from '@/domain/services/heatmap';
-import { habitPalette, useAppTheme } from '@/theme';
+import { habitPalette } from '@/theme';
 import { todayIso } from '@/utils/date';
 
 import { HabitCheckButton } from './habit-check-button';
+import { HabitGlyph } from './habit-glyph';
 import { useSetHabitCount } from './hooks';
 
 interface HabitCardProps {
@@ -24,7 +25,6 @@ interface HabitCardProps {
 }
 
 export function HabitCard({ habit, variant = 'full', onPress }: HabitCardProps) {
-  const theme = useAppTheme();
   const setCount = useSetHabitCount();
 
   const today = todayIso();
@@ -51,9 +51,7 @@ export function HabitCard({ habit, variant = 'full', onPress }: HabitCardProps) 
   return (
     <Card onPress={onPress} accessibilityLabel={`${habit.name}, ${subtitleParts.join(', ')}`} style={styles.card}>
       <View style={styles.header}>
-        <View style={[styles.emoji, { backgroundColor: `${swatch.base}1F`, borderRadius: theme.radii.md }]}>
-          <Text style={styles.emojiText}>{habit.emoji}</Text>
-        </View>
+        <HabitGlyph icon={habit.icon} emoji={habit.emoji} color={habit.color} size={42} />
         <View style={styles.titles}>
           <Text variant="titleMedium" numberOfLines={1}>
             {habit.name}
@@ -121,16 +119,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  emoji: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emojiText: {
-    fontSize: 22,
-    lineHeight: 28,
   },
   titles: {
     flex: 1,

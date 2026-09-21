@@ -15,6 +15,7 @@ interface HabitRow {
   id: string;
   name: string;
   emoji: string;
+  icon: string | null;
   color: string;
   target_per_day: number;
   days_of_week: string;
@@ -35,6 +36,7 @@ function toHabit(row: HabitRow): Habit {
     id: row.id,
     name: row.name,
     emoji: row.emoji,
+    icon: row.icon ?? null,
     color: isHabitColor(row.color) ? row.color : 'purple',
     targetPerDay: Math.max(1, row.target_per_day),
     daysOfWeek: isValidWeekdayMask(row.days_of_week) ? row.days_of_week : EVERY_DAY,
@@ -110,13 +112,15 @@ export async function create(db: SQLiteDatabase, input: NewHabitInput): Promise<
   const sortOrder = orderRow?.next ?? 0;
   const targetPerDay = clampTarget(input.targetPerDay);
   const daysOfWeek = validMask(input.daysOfWeek);
+  const icon = input.icon ?? null;
 
   await db.runAsync(
-    `INSERT INTO habits (id, name, emoji, color, target_per_day, days_of_week, sort_order, is_archived, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO habits (id, name, emoji, icon, color, target_per_day, days_of_week, sort_order, is_archived, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     id,
     input.name.trim(),
     input.emoji,
+    icon,
     input.color,
     targetPerDay,
     daysOfWeek,
@@ -129,6 +133,7 @@ export async function create(db: SQLiteDatabase, input: NewHabitInput): Promise<
     id,
     name: input.name.trim(),
     emoji: input.emoji,
+    icon,
     color: input.color,
     targetPerDay,
     daysOfWeek,
@@ -144,10 +149,11 @@ export async function update(db: SQLiteDatabase, id: string, input: UpdateHabitI
   if (!existing) return;
 
   await db.runAsync(
-    `UPDATE habits SET name = ?, emoji = ?, color = ?, target_per_day = ?, days_of_week = ?, updated_at = ?
+    `UPDATE habits SET name = ?, emoji = ?, icon = ?, color = ?, target_per_day = ?, days_of_week = ?, updated_at = ?
      WHERE id = ?`,
     input.name?.trim() || existing.name,
     input.emoji ?? existing.emoji,
+    input.icon !== undefined ? input.icon : existing.icon,
     input.color ?? existing.color,
     input.targetPerDay !== undefined ? clampTarget(input.targetPerDay) : existing.targetPerDay,
     input.daysOfWeek !== undefined ? validMask(input.daysOfWeek) : existing.daysOfWeek,
