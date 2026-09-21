@@ -1,56 +1,64 @@
-# Welcome to your Expo app 👋
+# ClayHabit
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A premium, offline-first productivity app — tasks, streaks, notes, reminders, calendar, goals, and
+focus sessions in one workspace. Built with Expo, TypeScript, and Expo Router.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- **Expo SDK 57** + **Expo Router** (file-based routing, `src/app`)
+- **TypeScript** (strict mode)
+- **React Native Reanimated** + **Gesture Handler** for animation and swipe gestures
+- **expo-sqlite** with a hand-rolled versioned migration runner — no ORM
+- **Zustand** for small client UI state, **TanStack Query** for all SQLite reads/writes
+- **expo-notifications** for local reminders, **expo-local-authentication** + **expo-secure-store**
+  for App Lock
+- **Jest** (`jest-expo`), with repository/migration tests run against a real SQLite engine via
+  Node's built-in `node:sqlite` (see `src/data/db/testing/create-test-db.ts`) rather than mocks
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Getting started
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Scan the QR code with [Expo Go](https://expo.dev/go) on a physical device, or press `a` / `i` for
+an Android/iOS emulator if you have one configured. There is no backend to run — everything is
+local SQLite.
 
-### Other setup steps
+## Project structure
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```
+src/
+  app/            Expo Router routes (thin — screens import from features/)
+  features/       Screen-level UI grouped by domain (tasks, notes, streaks, calendar, goals, focus, security, settings)
+  components/ui/  The shared design system (Button, Card, BentoCard, ProgressRing, ...)
+  data/           SQLite client, migrations, and repositories (the only layer that touches SQL)
+  domain/         Entity types and pure domain services (recurrence, streak engine)
+  lib/            Cross-cutting service wrappers (notifications, security)
+  store/          Zustand stores (settings, ephemeral app-lock session state)
+  theme/          Design tokens: colors, typography, spacing, radii, motion
+  hooks/, utils/  Shared hooks and pure utility functions
+```
 
-## Learn more
+## Scripts
 
-To learn more about developing your project with Expo, look at the following resources:
+| Command | What it does |
+| --- | --- |
+| `npm start` | Start the Metro dev server |
+| `npm run android` / `npm run ios` / `npm run web` | Start and open on a platform |
+| `npm test` | Run the Jest test suite |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier, write mode |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Database
 
-## Join the community
+The schema evolves through numbered migrations in `src/data/db/migrations/`, applied in order and
+tracked via SQLite's `PRAGMA user_version` (see `src/data/db/migrate.ts`). Add a new migration file
+rather than editing an existing one once it has shipped.
 
-Join our community of developers creating universal apps.
+## Design system
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+`/dev/ui-showcase` (linked from Settings → Developer in dev builds) renders every component in the
+shared design system for visual review.

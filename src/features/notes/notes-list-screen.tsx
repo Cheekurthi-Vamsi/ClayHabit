@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Chip, EmptyState, IconButton, Skeleton, Text } from '@/components/ui';
+import { Chip, EmptyState, ErrorState, IconButton, Skeleton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 
 import { useCreateNote, useFolders, useNotes, useSearchNotes } from './hooks';
@@ -16,7 +16,7 @@ export function NotesListScreen() {
   const [query, setQuery] = useState('');
   const [folderId, setFolderId] = useState<string | undefined>(undefined);
 
-  const { data: notes, isLoading } = useNotes('active', folderId);
+  const { data: notes, isLoading, isError, refetch } = useNotes('active', folderId);
   const { data: searchResults, isLoading: isSearching } = useSearchNotes(query);
   const { data: folders } = useFolders();
   const createNote = useCreateNote();
@@ -106,6 +106,8 @@ export function NotesListScreen() {
             <Skeleton height={80} radius={theme.radii.lg} />
             <Skeleton height={80} radius={theme.radii.lg} />
           </View>
+        ) : isError ? (
+          <ErrorState message="Couldn't load your notes." onRetry={() => refetch()} />
         ) : (notes?.length ?? 0) === 0 ? (
           <EmptyState
             icon="file-text"

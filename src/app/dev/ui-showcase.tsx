@@ -7,6 +7,7 @@ import {
   Card,
   Chip,
   EmptyState,
+  ErrorState,
   IconButton,
   ProgressBar,
   ProgressRing,
@@ -117,8 +118,9 @@ export default function UiShowcase() {
         </View>
       </Section>
 
-      <Section title="Empty & Loading">
+      <Section title="Empty, Error & Loading">
         <EmptyState icon="inbox" title="Nothing here yet" message="This is what an empty list looks like." />
+        <ErrorState message="This is what an error state looks like." onRetry={() => {}} />
         <Skeleton height={56} radius={theme.radii.md} />
       </Section>
     </ScrollView>

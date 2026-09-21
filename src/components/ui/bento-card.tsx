@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
+import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useAppTheme } from '@/theme';
 
 import { Card } from './card';
@@ -32,10 +33,11 @@ export function BentoCard({
   style,
 }: BentoCardProps) {
   const theme = useAppTheme();
+  const reduceMotion = useReduceMotion();
 
   return (
     <Animated.View
-      entering={FadeInUp.delay(entranceDelay).springify().damping(18)}
+      entering={reduceMotion ? undefined : FadeInUp.delay(entranceDelay).springify().damping(18)}
       style={[span === 'full' ? styles.full : styles.half, style]}
     >
       <Card onPress={onPress} accessibilityLabel={title} style={styles.cardFill}>

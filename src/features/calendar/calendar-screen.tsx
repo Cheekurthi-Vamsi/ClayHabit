@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Card, EmptyState, IconButton, Text } from '@/components/ui';
+import { Card, EmptyState, ErrorState, IconButton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 import { formatTime12h, getMonthGridDates, todayIso } from '@/utils/date';
 
@@ -25,8 +25,8 @@ export function CalendarScreen() {
   const rangeStart = gridDates[0];
   const rangeEnd = gridDates[gridDates.length - 1];
 
-  const { data: tasks } = useTasksForRange(rangeStart, rangeEnd);
-  const { data: events } = useEventsForRange(rangeStart, rangeEnd);
+  const { data: tasks, isError: tasksError, refetch: refetchTasks } = useTasksForRange(rangeStart, rangeEnd);
+  const { data: events, isError: eventsError, refetch: refetchEvents } = useEventsForRange(rangeStart, rangeEnd);
 
   const markedDates = useMemo(() => {
     const set = new Set<string>();
@@ -74,6 +74,16 @@ export function CalendarScreen() {
             {selectedDate === todayIso() ? 'TODAY' : selectedDate.toUpperCase()}
           </Text>
 
+          {(tasksError || eventsError) && (
+            <ErrorState
+              message="Couldn't load your calendar."
+              onRetry={() => {
+                refetchTasks();
+                refetchEvents();
+              }}
+            />
+          )}
+
           {dayEvents.map((event) => (
             <Card key={event.id} style={styles.eventCard}>
               <View style={[styles.eventDot, { backgroundColor: event.color }]} />
@@ -118,7 +128,7 @@ export function CalendarScreen() {
             </Card>
           ))}
 
-          {dayTasks.length === 0 && dayEvents.length === 0 && (
+          {!tasksError && !eventsError && dayTasks.length === 0 && dayEvents.length === 0 && (
             <EmptyState icon="calendar" title="Nothing scheduled" message="This day is wide open." />
           )}
         </View>

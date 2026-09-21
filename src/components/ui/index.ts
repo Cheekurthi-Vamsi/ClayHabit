@@ -6,6 +6,7 @@ export type { ButtonVariant } from './button';
 export { Card } from './card';
 export { Chip } from './chip';
 export { EmptyState } from './empty-state';
+export { ErrorState } from './error-state';
 export { Icon } from './icon';
 export type { IconName } from './icon';
 export { IconButton } from './icon-button';

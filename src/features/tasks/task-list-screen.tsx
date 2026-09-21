@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Chip, EmptyState, IconButton, Skeleton, Text } from '@/components/ui';
+import { Chip, EmptyState, ErrorState, IconButton, Skeleton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 import type { Task } from '@/domain/entities/task';
 
@@ -17,7 +17,7 @@ export function TaskListScreen() {
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [showCompleted, setShowCompleted] = useState(true);
 
-  const { data: tasks, isLoading } = useAllTasks(projectId);
+  const { data: tasks, isLoading, isError, refetch } = useAllTasks(projectId);
   const { data: projects } = useProjects();
   const toggleTask = useToggleTask();
 
@@ -72,6 +72,8 @@ export function TaskListScreen() {
           <View style={{ height: 10 }} />
           <Skeleton height={64} radius={theme.radii.lg} />
         </View>
+      ) : isError ? (
+        <ErrorState message="Couldn't load your tasks." onRetry={() => refetch()} />
       ) : (
         <FlatList
           data={visibleTasks}

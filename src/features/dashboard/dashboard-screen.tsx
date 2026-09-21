@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BentoCard, Chip, EmptyState, IconButton, ProgressRing, Skeleton, Text } from '@/components/ui';
+import { BentoCard, Chip, EmptyState, ErrorState, IconButton, ProgressRing, Skeleton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 import type { Note } from '@/domain/entities/note';
 import type { Task } from '@/domain/entities/task';
@@ -19,7 +19,7 @@ export function DashboardScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { data: tasks, isLoading } = useTodayTasks();
+  const { data: tasks, isLoading, isError, refetch } = useTodayTasks();
   const { data: streak } = useOverallStreak();
   const { data: notes } = useNotes('active');
   const toggleTask = useToggleTask();
@@ -110,6 +110,8 @@ export function DashboardScreen() {
                 <Skeleton height={56} radius={theme.radii.md} />
                 <Skeleton height={56} radius={theme.radii.md} />
               </View>
+            ) : isError ? (
+              <ErrorState message="Couldn't load today's tasks." onRetry={() => refetch()} />
             ) : total === 0 ? (
               <EmptyState
                 icon="sun"
