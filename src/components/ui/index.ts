@@ -13,4 +13,5 @@ export type { IconButtonVariant } from './icon-button';
 export { ProgressBar } from './progress-bar';
 export { ProgressRing } from './progress-ring';
 export { Skeleton } from './skeleton';
+export { SwipeAction } from './swipe-action';
 export { Text } from './text';

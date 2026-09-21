@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Card, Icon, Text } from '@/components/ui';
+import { Card, Icon, SwipeAction, Text } from '@/components/ui';
 import { useAppTheme, type ColorToken } from '@/theme';
 import type { Task } from '@/domain/entities/task';
 import { formatTime12h, todayIso } from '@/utils/date';
@@ -57,28 +57,6 @@ function AnimatedCheckbox({ checked }: { checked: boolean }) {
   );
 }
 
-function SwipeAction({
-  icon,
-  color,
-  onPress,
-}: {
-  icon: 'archive' | 'trash-2';
-  color: ColorToken;
-  onPress: () => void;
-}) {
-  const theme = useAppTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={icon === 'archive' ? 'Archive task' : 'Delete task'}
-      style={[styles.swipeAction, { backgroundColor: theme.colors[color] }]}
-    >
-      <Icon name={icon} size={18} color={theme.colors.onPrimary} />
-    </Pressable>
-  );
-}
-
 export function TaskListItem({ task, onToggle }: TaskListItemProps) {
   const theme = useAppTheme();
   const router = useRouter();
@@ -105,8 +83,18 @@ export function TaskListItem({ task, onToggle }: TaskListItemProps) {
       containerStyle={styles.swipeContainer}
       renderRightActions={() => (
         <View style={styles.swipeActions}>
-          <SwipeAction icon="archive" color="warning" onPress={() => archiveTask.mutate({ id: task.id, isArchived: true })} />
-          <SwipeAction icon="trash-2" color="error" onPress={() => deleteTask.mutate(task.id)} />
+          <SwipeAction
+            icon="archive"
+            color="warning"
+            label="Archive task"
+            onPress={() => archiveTask.mutate({ id: task.id, isArchived: true })}
+          />
+          <SwipeAction
+            icon="trash-2"
+            color="error"
+            label="Delete task"
+            onPress={() => deleteTask.mutate(task.id)}
+          />
         </View>
       )}
     >
@@ -187,11 +175,5 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: 8,
     marginLeft: 8,
-  },
-  swipeAction: {
-    width: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

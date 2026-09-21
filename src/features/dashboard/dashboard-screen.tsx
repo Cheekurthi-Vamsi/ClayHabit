@@ -5,9 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BentoCard, EmptyState, IconButton, ProgressRing, Skeleton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
+import type { Note } from '@/domain/entities/note';
 import type { Task } from '@/domain/entities/task';
 import { greetingForHour } from '@/utils/date';
+import { getPreviewText } from '@/utils/markdown';
 
+import { useNotes } from '../notes/hooks';
 import { useOverallStreak } from '../streaks/hooks';
 import { useTodayTasks, useToggleTask } from '../tasks/hooks';
 import { TaskListItem } from '../tasks/task-list-item';
@@ -18,6 +21,7 @@ export function DashboardScreen() {
   const router = useRouter();
   const { data: tasks, isLoading } = useTodayTasks();
   const { data: streak } = useOverallStreak();
+  const { data: notes } = useNotes('active');
   const toggleTask = useToggleTask();
 
   const greeting = useMemo(() => greetingForHour(new Date().getHours()), []);
@@ -25,6 +29,15 @@ export function DashboardScreen() {
   const total = tasks?.length ?? 0;
   const completed = tasks?.filter((task) => task.isCompleted).length ?? 0;
   const progress = total === 0 ? 0 : completed / total;
+
+  const mostRecentNote = useMemo(
+    () =>
+      (notes ?? []).reduce<Note | null>(
+        (latest, note) => (!latest || note.updatedAt > latest.updatedAt ? note : latest),
+        null,
+      ),
+    [notes],
+  );
 
   const handleToggle = (task: Task) => {
     toggleTask.mutate({ id: task.id, isCompleted: !task.isCompleted });
@@ -98,6 +111,28 @@ export function DashboardScreen() {
                   <TaskListItem key={task.id} task={task} onToggle={handleToggle} />
                 ))}
               </View>
+            )}
+          </BentoCard>
+
+          <BentoCard
+            title="Quick Note"
+            icon="file-text"
+            span="full"
+            onPress={() =>
+              mostRecentNote ? router.push(`/note/${mostRecentNote.id}`) : router.push('/(tabs)/notes')
+            }
+          >
+            {mostRecentNote ? (
+              <View style={{ gap: 4 }}>
+                <Text variant="titleMedium" numberOfLines={1}>
+                  {mostRecentNote.title.trim() || 'New Note'}
+                </Text>
+                <Text variant="bodySmall" color="textSecondary" numberOfLines={2}>
+                  {getPreviewText(mostRecentNote.body) || 'No additional text'}
+                </Text>
+              </View>
+            ) : (
+              <EmptyState icon="file-text" title="No notes yet" message="Tap to write your first note." />
             )}
           </BentoCard>
         </View>
