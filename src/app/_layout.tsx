@@ -1,18 +1,85 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { useEffect } from 'react';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/manrope';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SQLiteProvider, type SQLiteDatabase } from 'expo-sqlite';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { DATABASE_NAME, migrateDatabase } from '@/data/db/migrate';
+import { seedIfEmpty } from '@/data/repositories/task-repository';
+import { queryClient } from '@/lib/query-client';
+import { AppThemeProvider, useResolvedScheme } from '@/theme';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+async function onInitDatabase(db: SQLiteDatabase) {
+  await migrateDatabase(db);
+  await seedIfEmpty(db);
+}
+
+function RootNavigation() {
+  const scheme = useResolvedScheme();
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="modal/new-task"
+          options={{ presentation: 'modal', headerShown: true, title: 'New Task' }}
+        />
+        <Stack.Screen
+          name="dev/ui-showcase"
+          options={{ headerShown: true, title: 'UI Showcase' }}
+        />
+      </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  });
+
+  const ready = fontsLoaded || Boolean(fontError);
+
+  useEffect(() => {
+    if (ready) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [ready]);
+
+  if (!ready) {
+    return null;
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <SQLiteProvider databaseName={DATABASE_NAME} onInit={onInitDatabase}>
+          <QueryClientProvider client={queryClient}>
+            <AppThemeProvider>
+              <RootNavigation />
+            </AppThemeProvider>
+          </QueryClientProvider>
+        </SQLiteProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
