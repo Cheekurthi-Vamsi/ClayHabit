@@ -96,6 +96,23 @@ export function FinanceSettingsSection() {
 
         <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
+        <Pressable onPress={() => router.push('/fm/categories')} accessibilityRole="button" style={styles.row}>
+          <Icon name="tag" size={18} color={theme.colors.textSecondary} />
+          <Text variant="bodyLarge" style={styles.rowText}>
+            Categories
+          </Text>
+          <Icon name="chevron-right" size={18} color={theme.colors.textTertiary} />
+        </Pressable>
+        <Pressable onPress={() => router.push('/fm/budgets')} accessibilityRole="button" style={styles.row}>
+          <Icon name="sliders" size={18} color={theme.colors.textSecondary} />
+          <Text variant="bodyLarge" style={styles.rowText}>
+            Budgets
+          </Text>
+          <Icon name="chevron-right" size={18} color={theme.colors.textTertiary} />
+        </Pressable>
+
+        <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
         <SwitchRow
           icon="eye-off"
           label="Hide amounts"

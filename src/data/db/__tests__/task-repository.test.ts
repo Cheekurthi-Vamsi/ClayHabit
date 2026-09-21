@@ -14,7 +14,7 @@ describe('migrations + taskRepository', () => {
     await migrateDatabase(db);
 
     const version = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    expect(version?.user_version).toBe(9);
+    expect(version?.user_version).toBe(10);
 
     const count = await taskRepository.countTable(db);
     expect(count).toBe(0);

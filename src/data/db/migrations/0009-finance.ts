@@ -43,8 +43,8 @@ export const DEFAULT_INCOME_CATEGORIES = [
  *   the UTC offset.
  * - Transactions are soft-deleted (`deleted_at`): balances are always
  *   recomputed from the records, and no record is ever destroyed by an edit.
- * - The type CHECK already admits saving/transfer, since SQLite can't widen a
- *   CHECK constraint later without rebuilding the table.
+ * - The type CHECK already admits saving/transfer. (Migration 0010 still had to
+ *   rebuild the table to add `withdrawal` — SQLite can't widen a CHECK in place.)
  *
  * Written to be safely re-runnable (IF NOT EXISTS / INSERT OR IGNORE) in case
  * the app is killed part-way through.

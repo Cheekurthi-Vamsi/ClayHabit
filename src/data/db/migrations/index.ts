@@ -9,6 +9,7 @@ import * as m0006 from './0006-calendar-goals-focus';
 import * as m0007 from './0007-habits';
 import * as m0008 from './0008-habit-icons';
 import * as m0009 from './0009-finance';
+import * as m0010 from './0010-finance-plans';
 
 export interface Migration {
   version: number;
@@ -25,4 +26,5 @@ export const migrations: Migration[] = [
   { version: m0007.version, up: m0007.up },
   { version: m0008.version, up: m0008.up },
   { version: m0009.version, up: m0009.up },
+  { version: m0010.version, up: m0010.up },
 ];

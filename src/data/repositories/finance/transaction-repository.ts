@@ -4,6 +4,7 @@ import { MAX_AMOUNT_MINOR, isCurrencyCode } from '@/domain/finance/currency';
 import {
   EMPTY_TOTALS,
   PAYMENT_METHODS,
+  TRANSACTION_TYPES,
   type CategoryTotal,
   type FinTransaction,
   type FinTransactionView,
@@ -19,7 +20,7 @@ import { generateId } from '@/utils/id';
 import * as accountRepository from './account-repository';
 import * as categoryRepository from './category-repository';
 
-const TYPES: readonly TransactionType[] = ['income', 'expense', 'saving', 'transfer'];
+const TYPES = TRANSACTION_TYPES;
 const MERCHANT_MAX = 80;
 const NOTE_MAX = 500;
 
@@ -30,6 +31,7 @@ interface TransactionRow {
   amount_minor: number;
   currency: string;
   category_id: string | null;
+  savings_plan_id: string | null;
   occurred_on: string;
   occurred_at: string;
   merchant: string | null;
@@ -43,6 +45,8 @@ interface TransactionViewRow extends TransactionRow {
   category_name: string | null;
   category_emoji: string | null;
   category_color: string | null;
+  plan_name: string | null;
+  plan_emoji: string | null;
 }
 
 function isPaymentMethod(value: string | null): value is PaymentMethod {
@@ -57,6 +61,7 @@ function toTransaction(row: TransactionRow): FinTransaction {
     amountMinor: row.amount_minor,
     currency: isCurrencyCode(row.currency) ? row.currency : 'INR',
     categoryId: row.category_id,
+    savingsPlanId: row.savings_plan_id ?? null,
     occurredOn: row.occurred_on,
     occurredAt: row.occurred_at,
     merchant: row.merchant,
@@ -79,13 +84,19 @@ function toView(row: TransactionViewRow): FinTransactionView {
             color: row.category_color && isHabitColor(row.category_color) ? row.category_color : 'purple',
           }
         : null,
+    savingsPlan:
+      row.savings_plan_id && row.plan_name
+        ? { id: row.savings_plan_id, name: row.plan_name, emoji: row.plan_emoji ?? '🎯' }
+        : null,
   };
 }
 
 const VIEW_SELECT = `
-  SELECT t.*, c.name AS category_name, c.emoji AS category_emoji, c.color AS category_color
+  SELECT t.*, c.name AS category_name, c.emoji AS category_emoji, c.color AS category_color,
+         p.name AS plan_name, p.emoji AS plan_emoji
   FROM fin_transactions t
   LEFT JOIN fin_categories c ON c.id = t.category_id
+  LEFT JOIN fin_savings_plans p ON p.id = t.savings_plan_id
 `;
 const NEWEST_FIRST = 'ORDER BY t.occurred_on DESC, t.occurred_at DESC, t.created_at DESC';
 
@@ -113,11 +124,26 @@ function cleanText(value: string | null | undefined, max: number): string | null
 /** An expense can't sit in an income category, or the other way round. */
 async function assertCategoryFits(db: SQLiteDatabase, type: TransactionType, categoryId: string | null) {
   if (!categoryId) return;
+  if (type === 'saving' || type === 'withdrawal') {
+    throw new Error('Money moved in or out of savings belongs to a plan, not a category.');
+  }
   const category = await categoryRepository.getById(db, categoryId);
   if (!category) throw new Error('That category no longer exists.');
   if ((type === 'income' || type === 'expense') && category.kind !== type) {
     throw new Error(`"${category.name}" is an ${category.kind} category.`);
   }
+}
+
+/** Savings entries always name their plan; nothing else may. */
+async function assertPlanFits(db: SQLiteDatabase, type: TransactionType, planId: string | null) {
+  const needsPlan = type === 'saving' || type === 'withdrawal';
+  if (!needsPlan) {
+    if (planId) throw new Error('Only savings entries belong to a savings plan.');
+    return;
+  }
+  if (!planId) throw new Error('Choose which savings plan this is for.');
+  const plan = await db.getFirstAsync<{ id: string }>('SELECT id FROM fin_savings_plans WHERE id = ?', planId);
+  if (!plan) throw new Error('That savings plan no longer exists.');
 }
 
 /** The instant for a picked day: now if it's today, otherwise that day at the current time of day. */
@@ -135,6 +161,8 @@ export async function create(db: SQLiteDatabase, input: NewTransactionInput): Pr
   assertDate(input.occurredOn);
   const categoryId = input.categoryId ?? null;
   await assertCategoryFits(db, input.type, categoryId);
+  const savingsPlanId = input.savingsPlanId ?? null;
+  await assertPlanFits(db, input.type, savingsPlanId);
   const paymentMethod = input.paymentMethod ?? null;
   if (paymentMethod !== null && !isPaymentMethod(paymentMethod)) {
     throw new Error(`Unknown payment method: ${String(paymentMethod)}`);
@@ -146,15 +174,16 @@ export async function create(db: SQLiteDatabase, input: NewTransactionInput): Pr
 
   await db.runAsync(
     `INSERT INTO fin_transactions
-       (id, account_id, type, amount_minor, currency, category_id, occurred_on, occurred_at,
+       (id, account_id, type, amount_minor, currency, category_id, savings_plan_id, occurred_on, occurred_at,
         merchant, payment_method, note, deleted_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
     id,
     account.id,
     input.type,
     input.amountMinor,
     account.currency,
     categoryId,
+    savingsPlanId,
     input.occurredOn,
     input.occurredAt ?? defaultInstant(input.occurredOn),
     cleanText(input.merchant, MERCHANT_MAX),
@@ -181,6 +210,8 @@ export async function update(db: SQLiteDatabase, id: string, input: UpdateTransa
   assertDate(occurredOn);
   const categoryId = input.categoryId !== undefined ? input.categoryId : existing.categoryId;
   await assertCategoryFits(db, type, categoryId);
+  const savingsPlanId = input.savingsPlanId !== undefined ? input.savingsPlanId : existing.savingsPlanId;
+  await assertPlanFits(db, type, savingsPlanId);
   const paymentMethod = input.paymentMethod !== undefined ? input.paymentMethod : existing.paymentMethod;
   if (paymentMethod !== null && !isPaymentMethod(paymentMethod)) {
     throw new Error(`Unknown payment method: ${String(paymentMethod)}`);
@@ -199,12 +230,13 @@ export async function update(db: SQLiteDatabase, id: string, input: UpdateTransa
 
   await db.runAsync(
     `UPDATE fin_transactions
-     SET type = ?, amount_minor = ?, category_id = ?, occurred_on = ?, occurred_at = ?,
+     SET type = ?, amount_minor = ?, category_id = ?, savings_plan_id = ?, occurred_on = ?, occurred_at = ?,
          merchant = ?, payment_method = ?, note = ?, updated_at = ?
      WHERE id = ? AND deleted_at IS NULL`,
     type,
     amountMinor,
     categoryId,
+    savingsPlanId,
     occurredOn,
     occurredAt,
     input.merchant !== undefined ? cleanText(input.merchant, MERCHANT_MAX) : existing.merchant,
@@ -301,7 +333,7 @@ export async function dailyFlowsBetween(
 ): Promise<Record<string, { net: number; income: number; expense: number }>> {
   const rows = await db.getAllAsync<{ day: string; net: number; income: number; expense: number }>(
     `SELECT occurred_on AS day,
-            SUM(CASE WHEN type = 'income' THEN amount_minor ELSE -amount_minor END) AS net,
+            SUM(CASE WHEN type IN ('income', 'withdrawal') THEN amount_minor ELSE -amount_minor END) AS net,
             SUM(CASE WHEN type = 'income' THEN amount_minor ELSE 0 END) AS income,
             SUM(CASE WHEN type = 'expense' THEN amount_minor ELSE 0 END) AS expense
      FROM fin_transactions
@@ -346,4 +378,102 @@ export async function categoryTotalsBetween(
     totalMinor: row.total,
     count: row.count,
   }));
+}
+
+export interface TransactionFilter {
+  /** Local days, inclusive; either may be open. */
+  from?: string;
+  to?: string;
+  /** Matches merchant, note, category or savings-plan name (case-insensitive). */
+  query?: string;
+  type?: TransactionType;
+  /** A category id, or `null` for uncategorised only. */
+  categoryId?: string | null;
+  paymentMethod?: PaymentMethod;
+  savingsPlanId?: string;
+  limit?: number;
+}
+
+/** Search and filter across every transaction, newest first. */
+export async function listFiltered(db: SQLiteDatabase, filter: TransactionFilter): Promise<FinTransactionView[]> {
+  const clauses = ['t.deleted_at IS NULL'];
+  const params: (string | number)[] = [];
+
+  if (filter.from) {
+    clauses.push('t.occurred_on >= ?');
+    params.push(filter.from);
+  }
+  if (filter.to) {
+    clauses.push('t.occurred_on <= ?');
+    params.push(filter.to);
+  }
+  if (filter.type) {
+    clauses.push('t.type = ?');
+    params.push(filter.type);
+  }
+  if (filter.categoryId === null) {
+    clauses.push('t.category_id IS NULL');
+  } else if (filter.categoryId) {
+    clauses.push('t.category_id = ?');
+    params.push(filter.categoryId);
+  }
+  if (filter.paymentMethod) {
+    clauses.push('t.payment_method = ?');
+    params.push(filter.paymentMethod);
+  }
+  if (filter.savingsPlanId) {
+    clauses.push('t.savings_plan_id = ?');
+    params.push(filter.savingsPlanId);
+  }
+  const query = filter.query?.trim().toLowerCase();
+  if (query) {
+    // Escape LIKE wildcards so a search for "50%" means those characters, not a pattern.
+    const pattern = `%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    const like = (column: string) => `LOWER(IFNULL(${column}, '')) LIKE ? ESCAPE '\\'`;
+    clauses.push(`(${[like('t.merchant'), like('t.note'), like('c.name'), like('p.name')].join(' OR ')})`);
+    params.push(pattern, pattern, pattern, pattern);
+  }
+
+  const rows = await db.getAllAsync<TransactionViewRow>(
+    `${VIEW_SELECT} WHERE ${clauses.join(' AND ')} ${NEWEST_FIRST} LIMIT ?`,
+    ...params,
+    filter.limit ?? 200,
+  );
+  return rows.map(toView);
+}
+
+/** Totals per type for each calendar month from `fromMonthStart` (`YYYY-MM-DD`) on. */
+export async function monthlyTotalsSince(
+  db: SQLiteDatabase,
+  fromMonthStart: string,
+): Promise<Record<string, TypeTotals>> {
+  const rows = await db.getAllAsync<{ month: string; type: string; total: number }>(
+    `SELECT substr(occurred_on, 1, 7) AS month, type, SUM(amount_minor) AS total
+     FROM fin_transactions
+     WHERE deleted_at IS NULL AND occurred_on >= ?
+     GROUP BY month, type`,
+    fromMonthStart,
+  );
+  const byMonth: Record<string, TypeTotals> = {};
+  for (const row of rows) {
+    if (!(TYPES as readonly string[]).includes(row.type)) continue;
+    byMonth[row.month] ??= { ...EMPTY_TOTALS };
+    byMonth[row.month][row.type as TransactionType] = row.total;
+  }
+  return byMonth;
+}
+
+/** The single largest expense over local days [from, to], if any. */
+export async function largestExpenseBetween(
+  db: SQLiteDatabase,
+  from: string,
+  to: string,
+): Promise<FinTransactionView | null> {
+  const row = await db.getFirstAsync<TransactionViewRow>(
+    `${VIEW_SELECT} WHERE t.deleted_at IS NULL AND t.type = 'expense' AND t.occurred_on >= ? AND t.occurred_on <= ?
+     ORDER BY t.amount_minor DESC, t.occurred_on DESC LIMIT 1`,
+    from,
+    to,
+  );
+  return row ? toView(row) : null;
 }

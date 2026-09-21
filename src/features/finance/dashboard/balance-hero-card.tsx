@@ -27,13 +27,15 @@ function FlowPill({ icon, amountMinor, currency, label }: { icon: IconName; amou
 
 interface BalanceHeroCardProps {
   availableMinor: number;
+  /** Money in savings plans — set aside, so not part of the available balance. */
+  savedInPlansMinor: number;
   summary: MonthSummary;
   monthKey: MonthKey;
   currency: string;
 }
 
 /** The number the finance dashboard leads with: what's available right now. */
-export function BalanceHeroCard({ availableMinor, summary, monthKey, currency }: BalanceHeroCardProps) {
+export function BalanceHeroCard({ availableMinor, savedInPlansMinor, summary, monthKey, currency }: BalanceHeroCardProps) {
   const theme = useAppTheme();
   const month = formatMonthLabel(monthKey).split(' ')[0];
 
@@ -56,10 +58,21 @@ export function BalanceHeroCard({ availableMinor, summary, monthKey, currency }:
         <FlowPill icon="arrow-up-right" amountMinor={summary.expense} currency={currency} label="out" />
       </View>
       <View style={styles.footer}>
-        <Text variant="caption" style={styles.whiteMuted}>
-          {`${month} started at `}
-        </Text>
-        <MoneyText variant="caption" amountMinor={summary.startBalance} currency={currency} style={styles.whiteMuted} />
+        <View style={styles.footerItem}>
+          <Text variant="caption" style={styles.whiteMuted}>
+            {`${month} started at `}
+          </Text>
+          <MoneyText variant="caption" amountMinor={summary.startBalance} currency={currency} style={styles.whiteMuted} />
+        </View>
+        {savedInPlansMinor > 0 ? (
+          <View style={styles.footerItem}>
+            <Icon name="shield" size={12} color="rgba(255,255,255,0.9)" />
+            <MoneyText variant="caption" amountMinor={savedInPlansMinor} currency={currency} style={styles.white} />
+            <Text variant="caption" style={styles.whiteMuted}>
+              {' in savings'}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </GradientCard>
   );
@@ -93,10 +106,18 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255,255,255,0.35)',
     paddingTop: 10,
+  },
+  footerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   white: {
     color: '#FFFFFF',

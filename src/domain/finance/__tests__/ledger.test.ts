@@ -2,6 +2,7 @@ import { EMPTY_TOTALS, type CategoryTotal } from '../entities';
 import {
   availableBalance,
   balanceEffect,
+  savedInPlans,
   breakdownByCategory,
   dailyBalances,
   netChange,
@@ -15,12 +16,19 @@ describe('balance model', () => {
     expect(balanceEffect('expense', 500)).toBe(-500);
     expect(balanceEffect('saving', 500)).toBe(-500);
     expect(balanceEffect('transfer', 500)).toBe(-500);
+    expect(balanceEffect('withdrawal', 500)).toBe(500);
   });
 
   it('available = opening + income − expenses − savings − transfers', () => {
-    const totals = { income: 6_000_000, expense: 1_750_000, saving: 500_000, transfer: 100_000 };
+    const totals = { income: 6_000_000, expense: 1_750_000, saving: 500_000, withdrawal: 0, transfer: 100_000 };
     expect(netChange(totals)).toBe(3_650_000);
     expect(availableBalance(500_000, totals)).toBe(4_150_000);
+  });
+
+  it('returns money taken back out of savings to the available balance', () => {
+    const totals = { ...EMPTY_TOTALS, income: 1_000_000, saving: 400_000, withdrawal: 150_000 };
+    expect(availableBalance(0, totals)).toBe(750_000);
+    expect(savedInPlans(totals)).toBe(250_000);
   });
 
   it('can go negative rather than hiding an overdraft', () => {
@@ -29,8 +37,8 @@ describe('balance model', () => {
 });
 
 describe('summarizeMonth', () => {
-  const before = { income: 5_000_000, expense: 4_500_000, saving: 0, transfer: 0 };
-  const month = { income: 6_000_000, expense: 1_750_000, saving: 800_000, transfer: 0 };
+  const before = { income: 5_000_000, expense: 4_500_000, saving: 0, withdrawal: 0, transfer: 0 };
+  const month = { income: 6_000_000, expense: 1_750_000, saving: 800_000, withdrawal: 0, transfer: 0 };
 
   it('starts from the opening balance plus everything before the month', () => {
     const summary = summarizeMonth(1_000_000, before, month);
@@ -42,6 +50,7 @@ describe('summarizeMonth', () => {
   it('counts money set aside as kept, not spent', () => {
     const summary = summarizeMonth(0, EMPTY_TOTALS, month);
     expect(summary.kept).toBe(4_250_000);
+    expect(summary.setAside).toBe(800_000);
     expect(summary.savingsRate).toBeCloseTo(4_250_000 / 6_000_000);
   });
 

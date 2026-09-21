@@ -15,8 +15,10 @@ import { SQLiteProvider, type SQLiteDatabase } from 'expo-sqlite';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { DATABASE_NAME, migrateDatabase } from '@/data/db/migrate';
+import { migrateDatabase } from '@/data/db/migrate';
 import { seedIfEmpty } from '@/data/repositories/task-repository';
+import { AuthGate } from '@/features/auth/auth-gate';
+import { AuthProvider } from '@/features/auth/auth-provider';
 import { AppLockGate } from '@/features/security/app-lock-gate';
 import { NotificationResponseHandler } from '@/features/tasks/notification-response-handler';
 import { queryClient } from '@/lib/query-client';
@@ -65,6 +67,16 @@ function RootNavigation() {
             name="modal/starting-balance"
             options={{ presentation: 'modal', headerShown: true, title: 'Starting balance' }}
           />
+          <Stack.Screen name="modal/budget" options={{ presentation: 'modal', headerShown: true, title: 'Budget' }} />
+          <Stack.Screen
+            name="modal/savings-plan"
+            options={{ presentation: 'modal', headerShown: true, title: 'Savings plan' }}
+          />
+          <Stack.Screen
+            name="modal/savings-entry"
+            options={{ presentation: 'modal', headerShown: true, title: 'Savings' }}
+          />
+          <Stack.Screen name="modal/category" options={{ presentation: 'modal', headerShown: true, title: 'Category' }} />
           <Stack.Screen
             name="modal/new-task"
             options={{ presentation: 'modal', headerShown: true, title: 'New Task' }}
@@ -117,13 +129,20 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <SQLiteProvider databaseName={DATABASE_NAME} onInit={onInitDatabase}>
-          <QueryClientProvider client={queryClient}>
-            <AppThemeProvider>
-              <RootNavigation />
-            </AppThemeProvider>
-          </QueryClientProvider>
-        </SQLiteProvider>
+        <AuthProvider>
+          <AppThemeProvider>
+            {/* Signed out → sign-in screen. Signed in → that account's own database. */}
+            <AuthGate>
+              {(databaseName) => (
+                <SQLiteProvider key={databaseName} databaseName={databaseName} onInit={onInitDatabase}>
+                  <QueryClientProvider client={queryClient}>
+                    <RootNavigation />
+                  </QueryClientProvider>
+                </SQLiteProvider>
+              )}
+            </AuthGate>
+          </AppThemeProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -1,3 +1,5 @@
+import { OVERALL_BUDGET, type Budget, type BudgetScope, type CategoryColor, type MonthKey } from './entities';
+
 /**
  * Budget usage. The language is deliberately neutral — a budget is a plan the
  * person set, not a test they pass or fail.
@@ -43,4 +45,83 @@ export function budgetMessage(categoryName: string, usage: BudgetUsage): string 
     case 'exceeded':
       return `${categoryName} spending has gone past this month's budget.`;
   }
+}
+
+export interface BudgetSubject {
+  id: string;
+  name: string;
+  emoji: string;
+  color: CategoryColor;
+}
+
+export interface BudgetLine {
+  scope: BudgetScope;
+  categoryId: string | null;
+  name: string;
+  emoji: string;
+  color: CategoryColor;
+  startsMonth: MonthKey;
+  usage: BudgetUsage;
+}
+
+export interface BudgetPicture {
+  /** The whole-month spending limit, if one is set. */
+  overall: BudgetLine | null;
+  /** Category budgets, the most-used first. */
+  lines: BudgetLine[];
+  /** Categories with spending this month but no budget, largest first. */
+  unbudgeted: (BudgetSubject & { spentMinor: number })[];
+  /** Everything spent in the month, budgeted or not. */
+  totalSpentMinor: number;
+}
+
+/**
+ * Joins the month's budgets with what was actually spent. Budgets for
+ * categories that no longer exist are skipped rather than shown nameless.
+ */
+export function buildBudgetPicture(
+  budgets: readonly Budget[],
+  categories: readonly BudgetSubject[],
+  spentByCategory: Readonly<Record<string, number>>,
+  totalSpentMinor: number,
+): BudgetPicture {
+  const byId = new Map(categories.map((category) => [category.id, category]));
+  let overall: BudgetLine | null = null;
+  const lines: BudgetLine[] = [];
+
+  for (const budget of budgets) {
+    if (budget.scope === OVERALL_BUDGET) {
+      overall = {
+        scope: budget.scope,
+        categoryId: null,
+        name: 'All spending',
+        emoji: '🧾',
+        color: 'purple',
+        startsMonth: budget.startsMonth,
+        usage: budgetUsage(totalSpentMinor, budget.limitMinor),
+      };
+      continue;
+    }
+    const category = budget.categoryId ? byId.get(budget.categoryId) : undefined;
+    if (!category) continue;
+    lines.push({
+      scope: budget.scope,
+      categoryId: category.id,
+      name: category.name,
+      emoji: category.emoji,
+      color: category.color,
+      startsMonth: budget.startsMonth,
+      usage: budgetUsage(spentByCategory[category.id] ?? 0, budget.limitMinor),
+    });
+  }
+
+  lines.sort((a, b) => b.usage.ratio - a.usage.ratio || a.name.localeCompare(b.name));
+
+  const budgeted = new Set(lines.map((line) => line.categoryId));
+  const unbudgeted = categories
+    .filter((category) => !budgeted.has(category.id) && (spentByCategory[category.id] ?? 0) > 0)
+    .map((category) => ({ ...category, spentMinor: spentByCategory[category.id] }))
+    .sort((a, b) => b.spentMinor - a.spentMinor);
+
+  return { overall, lines, unbudgeted, totalSpentMinor };
 }

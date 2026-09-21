@@ -1,4 +1,4 @@
-import { budgetMessage, budgetUsage } from '../budget';
+import { budgetMessage, budgetUsage, buildBudgetPicture } from '../budget';
 import { projectSavings } from '../savings';
 
 describe('budgetUsage', () => {
@@ -85,5 +85,26 @@ describe('projectSavings', () => {
   it('counts the leap day', () => {
     const projection = projectSavings({ ...laptop, today: '2028-02-01', targetDate: '2028-03-01' });
     expect(projection.daysRemaining).toBe(29);
+  });
+});
+
+describe('buildBudgetPicture', () => {
+  const food = { id: 'food', name: 'Food', emoji: '🍔', color: 'amber' as const };
+  const fun = { id: 'fun', name: 'Fun', emoji: '🎮', color: 'pink' as const };
+
+  it('skips budgets whose category is gone and lists unbudgeted spending', () => {
+    const picture = buildBudgetPicture(
+      [
+        { scope: 'food', categoryId: 'food', limitMinor: 1_000, startsMonth: '2026-09' },
+        { scope: 'gone', categoryId: 'gone', limitMinor: 1_000, startsMonth: '2026-09' },
+      ],
+      [food, fun],
+      { food: 950, fun: 300 },
+      1_250,
+    );
+    expect(picture.overall).toBeNull();
+    expect(picture.lines.map((line) => [line.name, line.usage.state])).toEqual([['Food', 'near-limit']]);
+    expect(picture.unbudgeted).toEqual([{ ...fun, spentMinor: 300 }]);
+    expect(picture.totalSpentMinor).toBe(1_250);
   });
 });

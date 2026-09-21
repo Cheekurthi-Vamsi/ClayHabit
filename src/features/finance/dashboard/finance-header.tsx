@@ -3,13 +3,16 @@ import { StyleSheet, View } from 'react-native';
 
 import { Avatar, IconButton, Text } from '@/components/ui';
 import type { MonthKey } from '@/domain/finance/entities';
+import { useAccount } from '@/features/auth/account-context';
 import { formatMonthLabel } from '@/domain/finance/month';
 import { useSettingsStore } from '@/store/settings-store';
 
 /** Title, month, the one-tap privacy toggle, and the shared profile/settings entry. */
 export function FinanceHeader({ title, monthKey }: { title: string; monthKey: MonthKey }) {
   const router = useRouter();
-  const displayName = useSettingsStore((state) => state.displayName);
+  const localName = useSettingsStore((state) => state.displayName);
+  const account = useAccount();
+  const displayName = localName || account?.fullName || '';
   const hidden = useSettingsStore((state) => state.hideAmounts);
   const setHidden = useSettingsStore((state) => state.setHideAmounts);
 
@@ -29,7 +32,7 @@ export function FinanceHeader({ title, monthKey }: { title: string; monthKey: Mo
         accessibilityLabel={hidden ? 'Show amounts' : 'Hide amounts'}
         onPress={() => setHidden(!hidden)}
       />
-      <Avatar name={displayName} onPress={() => router.push('/settings')} accessibilityLabel="Profile and settings" />
+      <Avatar name={displayName} imageUrl={account?.imageUrl} onPress={() => router.push('/settings')} accessibilityLabel="Profile and settings" />
     </View>
   );
 }

@@ -14,10 +14,13 @@ export type MonthKey = string;
 /**
  * - income: money in.
  * - expense: money spent.
- * - saving: money set aside toward savings (leaves the spendable balance).
+ * - saving: money set aside into a savings plan (leaves the spendable balance).
+ * - withdrawal: money taken back out of a savings plan (returns to it).
  * - transfer: money moved out to somewhere else you own.
  */
-export type TransactionType = 'income' | 'expense' | 'saving' | 'transfer';
+export type TransactionType = 'income' | 'expense' | 'saving' | 'withdrawal' | 'transfer';
+
+export const TRANSACTION_TYPES: readonly TransactionType[] = ['income', 'expense', 'saving', 'withdrawal', 'transfer'];
 
 export type CategoryKind = 'expense' | 'income';
 
@@ -63,6 +66,8 @@ export interface FinTransaction {
   amountMinor: number;
   currency: CurrencyCode;
   categoryId: string | null;
+  /** The savings plan a `saving` / `withdrawal` belongs to. */
+  savingsPlanId: string | null;
   /** Local calendar date the money counts toward (`YYYY-MM-DD`). Months and days group on this. */
   occurredOn: string;
   /** Exact instant, for ordering and showing the time of day. */
@@ -77,12 +82,14 @@ export interface FinTransaction {
 /** A transaction joined with its category, as lists display it. */
 export interface FinTransactionView extends FinTransaction {
   category: Pick<FinCategory, 'id' | 'name' | 'emoji' | 'color'> | null;
+  savingsPlan: { id: string; name: string; emoji: string } | null;
 }
 
 export interface NewTransactionInput {
   type: TransactionType;
   amountMinor: number;
   categoryId?: string | null;
+  savingsPlanId?: string | null;
   occurredOn: string;
   occurredAt?: string;
   merchant?: string | null;
@@ -97,10 +104,11 @@ export interface TypeTotals {
   income: number;
   expense: number;
   saving: number;
+  withdrawal: number;
   transfer: number;
 }
 
-export const EMPTY_TOTALS: TypeTotals = { income: 0, expense: 0, saving: 0, transfer: 0 };
+export const EMPTY_TOTALS: TypeTotals = { income: 0, expense: 0, saving: 0, withdrawal: 0, transfer: 0 };
 
 export interface CategoryTotal {
   categoryId: string | null;
@@ -109,4 +117,63 @@ export interface CategoryTotal {
   color: CategoryColor;
   totalMinor: number;
   count: number;
+}
+
+/** 1 = high, 2 = medium, 3 = low. */
+export type SavingsPriority = 1 | 2 | 3;
+
+export const PRIORITY_LABELS: Record<SavingsPriority, string> = { 1: 'High', 2: 'Medium', 3: 'Low' };
+
+export interface SavingsPlan {
+  id: string;
+  name: string;
+  emoji: string;
+  color: CategoryColor;
+  targetMinor: number;
+  /** Local `YYYY-MM-DD`, or null for an open-ended plan. */
+  targetDate: string | null;
+  /** What the person plans to put in each month, if they've said. */
+  monthlyContributionMinor: number | null;
+  priority: SavingsPriority;
+  notes: string | null;
+  isArchived: boolean;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A plan with the figures derived from its entries. */
+export interface SavingsPlanWithProgress extends SavingsPlan {
+  /** Deposits minus withdrawals. */
+  savedMinor: number;
+  /** Net contributions over the last 90 days, as a monthly average. */
+  recentMonthlyMinor: number;
+  entryCount: number;
+}
+
+export interface NewSavingsPlanInput {
+  name: string;
+  emoji?: string;
+  color?: CategoryColor;
+  targetMinor: number;
+  targetDate?: string | null;
+  monthlyContributionMinor?: number | null;
+  priority?: SavingsPriority;
+  notes?: string | null;
+}
+
+export type UpdateSavingsPlanInput = Partial<NewSavingsPlanInput>;
+
+/** `*` is the overall monthly budget; anything else is a category id. */
+export type BudgetScope = string;
+
+export const OVERALL_BUDGET: BudgetScope = '*';
+
+/** The budget in force for a month. */
+export interface Budget {
+  scope: BudgetScope;
+  categoryId: string | null;
+  limitMinor: number;
+  /** The month this limit started applying (`YYYY-MM`). */
+  startsMonth: MonthKey;
 }

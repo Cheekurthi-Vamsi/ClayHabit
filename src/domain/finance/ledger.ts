@@ -5,17 +5,23 @@ import type { CategoryTotal, TransactionType, TypeTotals } from './entities';
  * opening balance plus every recorded transaction, so editing or removing a
  * record can't leave a stale running total behind:
  *
- *   available = opening + income − expenses − savings set aside − transfers out
+ *   available = opening + income + withdrawals from savings
+ *               − expenses − savings set aside − transfers out
  */
 
 /** How one transaction moves the spendable balance. */
 export function balanceEffect(type: TransactionType, amountMinor: number): number {
-  return type === 'income' ? amountMinor : -amountMinor;
+  return type === 'income' || type === 'withdrawal' ? amountMinor : -amountMinor;
 }
 
 /** Net change to the spendable balance across a set of totals. */
 export function netChange(totals: TypeTotals): number {
-  return totals.income - totals.expense - totals.saving - totals.transfer;
+  return totals.income + totals.withdrawal - totals.expense - totals.saving - totals.transfer;
+}
+
+/** What sits in savings plans: everything set aside minus everything taken back. */
+export function savedInPlans(totals: TypeTotals): number {
+  return totals.saving - totals.withdrawal;
 }
 
 export function availableBalance(openingMinor: number, allTime: TypeTotals): number {
@@ -26,6 +32,7 @@ export interface MonthSummary {
   income: number;
   expense: number;
   saving: number;
+  withdrawal: number;
   transfer: number;
   /** Balance on the first of the month, before any of its transactions. */
   startBalance: number;
@@ -35,9 +42,12 @@ export interface MonthSummary {
   net: number;
   /**
    * Income not spent or transferred away — including anything explicitly set
-   * aside as savings, since that money was kept, not spent.
+   * aside as savings, since that money was kept, not spent. Moving money in
+   * and out of savings plans doesn't change it.
    */
   kept: number;
+  /** Net amount put into savings plans this month. */
+  setAside: number;
   /** `kept / income`, or null with no income to measure against. */
   savingsRate: number | null;
 }
@@ -57,6 +67,7 @@ export function summarizeMonth(openingMinor: number, beforeMonth: TypeTotals, mo
     endBalance: startBalance + net,
     net,
     kept,
+    setAside: savedInPlans(month),
     savingsRate: month.income > 0 ? kept / month.income : null,
   };
 }

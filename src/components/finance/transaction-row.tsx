@@ -24,6 +24,9 @@ function timeOf(iso: string): string | null {
 }
 
 export function transactionTitle(transaction: FinTransactionView): string {
+  if (transaction.type === 'saving' || transaction.type === 'withdrawal') {
+    return transaction.savingsPlan?.name ?? 'Savings';
+  }
   return (
     transaction.merchant ??
     transaction.note ??
@@ -32,12 +35,21 @@ export function transactionTitle(transaction: FinTransactionView): string {
   );
 }
 
+const TYPE_DETAIL: Partial<Record<FinTransactionView['type'], string>> = {
+  saving: 'Set aside',
+  withdrawal: 'From savings',
+  transfer: 'Transfer',
+};
+
 export function TransactionRow({ transaction, currency, onPress, showDate = false }: TransactionRowProps) {
   const theme = useAppTheme();
   const title = transactionTitle(transaction);
-  const income = transaction.type === 'income';
+  // Money coming in, whether earned or taken back out of savings.
+  const moneyIn = transaction.type === 'income' || transaction.type === 'withdrawal';
+  const savings = transaction.type === 'saving' || transaction.type === 'withdrawal';
   const method = PAYMENT_METHODS.find((item) => item.key === transaction.paymentMethod)?.label;
   const details = [
+    TYPE_DETAIL[transaction.type] ?? null,
     transaction.category && transaction.category.name !== title ? transaction.category.name : null,
     showDate ? formatDayLabel(transaction.occurredOn) : timeOf(transaction.occurredAt),
     method,
@@ -48,12 +60,14 @@ export function TransactionRow({ transaction, currency, onPress, showDate = fals
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityHint={onPress ? 'Opens this transaction to edit it' : undefined}
+      accessibilityHint={onPress ? (savings ? 'Opens its savings plan' : 'Opens this transaction to edit it') : undefined}
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.colors.surfacePressed }]}
     >
       <CategoryGlyph
-        emoji={transaction.category?.emoji ?? (income ? '💵' : '🏷️')}
-        color={transaction.category?.color ?? 'purple'}
+        emoji={
+          savings ? (transaction.savingsPlan?.emoji ?? '🎯') : (transaction.category?.emoji ?? (moneyIn ? '💵' : '🏷️'))
+        }
+        color={savings ? 'mint' : (transaction.category?.color ?? 'purple')}
       />
       <View style={styles.body}>
         <Text variant="titleMedium" numberOfLines={1}>
@@ -69,8 +83,8 @@ export function TransactionRow({ transaction, currency, onPress, showDate = fals
         variant="titleMedium"
         amountMinor={transaction.amountMinor}
         currency={currency}
-        sign={income ? 'always' : 'never'}
-        color={income ? 'financeText' : 'textPrimary'}
+        sign={moneyIn ? 'always' : 'never'}
+        color={moneyIn ? 'financeText' : transaction.type === 'saving' ? 'textSecondary' : 'textPrimary'}
       />
     </Pressable>
   );

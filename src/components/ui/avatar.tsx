@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -9,6 +10,8 @@ import { Text } from './text';
 
 interface AvatarProps {
   name?: string;
+  /** Profile photo (e.g. from the signed-in account); initials are the fallback. */
+  imageUrl?: string | null;
   size?: number;
   onPress?: () => void;
   accessibilityLabel?: string;
@@ -21,7 +24,7 @@ function initialsOf(name: string): string {
 }
 
 /** Initials (or a person glyph) inside a signature-gradient ring. */
-export function Avatar({ name = '', size = 44, onPress, accessibilityLabel }: AvatarProps) {
+export function Avatar({ name = '', imageUrl, size = 44, onPress, accessibilityLabel }: AvatarProps) {
   const theme = useAppTheme();
   const initials = initialsOf(name);
   const ring = 2.5;
@@ -49,7 +52,15 @@ export function Avatar({ name = '', size = 44, onPress, accessibilityLabel }: Av
             { borderRadius: (size - ring * 2) / 2, backgroundColor: theme.colors.surface },
           ]}
         >
-          {initials ? (
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={{ width: size - ring * 2, height: size - ring * 2, borderRadius: (size - ring * 2) / 2 }}
+              contentFit="cover"
+              transition={150}
+              accessible={false}
+            />
+          ) : initials ? (
             <Text variant="titleMedium" color="primary">
               {initials}
             </Text>
@@ -65,6 +76,7 @@ export function Avatar({ name = '', size = 44, onPress, accessibilityLabel }: Av
 const styles = StyleSheet.create({
   inner: {
     flex: 1,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

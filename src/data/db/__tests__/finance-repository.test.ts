@@ -1,5 +1,6 @@
 import * as accountRepository from '@/data/repositories/finance/account-repository';
 import * as categoryRepository from '@/data/repositories/finance/category-repository';
+import * as savingsRepository from '@/data/repositories/finance/savings-repository';
 import * as transactionRepository from '@/data/repositories/finance/transaction-repository';
 
 import { migrateDatabase } from '../migrate';
@@ -142,8 +143,15 @@ describe('transactionRepository.update / softDelete', () => {
 describe('aggregates', () => {
   async function seeded() {
     const db = await setup();
+    const plan = await savingsRepository.createPlan(db, { name: 'Emergency fund', targetMinor: 10_000_000 });
     const add = (type: 'income' | 'expense' | 'saving', amountMinor: number, occurredOn: string, categoryId?: string) =>
-      transactionRepository.create(db, { type, amountMinor, occurredOn, categoryId });
+      transactionRepository.create(db, {
+        type,
+        amountMinor,
+        occurredOn,
+        categoryId,
+        savingsPlanId: type === 'saving' ? plan.id : undefined,
+      });
     await add('income', 6_000_000, '2026-09-01', 'inc-salary');
     await add('income', 1_500_000, '2026-09-10', 'inc-freelance');
     await add('expense', 45_000, '2026-09-21', 'exp-food');
@@ -160,6 +168,7 @@ describe('aggregates', () => {
       income: 7_500_000,
       expense: 93_000,
       saving: 500_000,
+      withdrawal: 0,
       transfer: 0,
     });
     expect((await transactionRepository.totalsBetween(db, { to: '2026-08-31' })).expense).toBe(999_900);

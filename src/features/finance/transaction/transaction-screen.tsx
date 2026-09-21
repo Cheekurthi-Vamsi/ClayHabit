@@ -1,20 +1,19 @@
 import { useState } from 'react';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AmountDisplay } from '@/components/finance/amount-display';
+import { DayPicker } from '@/components/finance/day-picker';
 import { MoneyKeypad } from '@/components/finance/money-keypad';
 import { Button, Chip, EmptyState, Icon, IconButton, SegmentedControl, Skeleton, Text } from '@/components/ui';
 import { amountTextToMinor, applyAmountKey, minorToAmountText } from '@/domain/finance/amount-entry';
 import { currencyOf } from '@/domain/finance/currency';
 import { PAYMENT_METHODS, type FinTransactionView, type PaymentMethod } from '@/domain/finance/entities';
-import { formatDayLabel } from '@/domain/finance/month';
 import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import { useAppTheme } from '@/theme';
-import { addDaysIso, toLocalIsoDate, todayIso } from '@/utils/date';
+import { todayIso } from '@/utils/date';
 
 import {
   useCategories,
@@ -110,19 +109,6 @@ function TransactionForm({ existing, initialType }: { existing?: FinTransactionV
     ]);
   };
 
-  const pickDateAndroid = () =>
-    DateTimePickerAndroid.open({
-      mode: 'date',
-      value: new Date(`${occurredOn}T12:00:00`),
-      maximumDate: new Date(),
-      onChange: (event, date) => {
-        if (event.type === 'set' && date) setOccurredOn(toLocalIsoDate(date));
-      },
-    });
-
-  const yesterday = addDaysIso(today, -1);
-  const otherDay = occurredOn !== today && occurredOn !== yesterday;
-
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -160,29 +146,7 @@ function TransactionForm({ existing, initialType }: { existing?: FinTransactionV
         </Field>
 
         <Field label="WHEN">
-          <View style={styles.chips}>
-            <Chip label="Today" selected={occurredOn === today} onPress={() => setOccurredOn(today)} />
-            <Chip label="Yesterday" selected={occurredOn === yesterday} onPress={() => setOccurredOn(yesterday)} />
-            {Platform.OS === 'android' ? (
-              <Chip
-                label={otherDay ? formatDayLabel(occurredOn) : 'Pick a day'}
-                icon="calendar"
-                selected={otherDay}
-                onPress={pickDateAndroid}
-              />
-            ) : (
-              <DateTimePicker
-                mode="date"
-                display="compact"
-                value={new Date(`${occurredOn}T12:00:00`)}
-                maximumDate={new Date()}
-                accentColor={theme.colors.finance}
-                onChange={(_event, date) => {
-                  if (date) setOccurredOn(toLocalIsoDate(date));
-                }}
-              />
-            )}
-          </View>
+          <DayPicker value={occurredOn} onChange={setOccurredOn} />
         </Field>
 
         <TextInput
@@ -303,6 +267,17 @@ export function TransactionScreen() {
       <View style={[styles.screen, styles.content, { backgroundColor: theme.colors.background }]}>
         <Skeleton height={70} radius={theme.radii.md} />
         <Skeleton height={100} radius={theme.radii.md} />
+      </View>
+    );
+  }
+
+  // Savings entries belong to their plan; editing them as an expense would change what they are.
+  if (existing?.savingsPlanId) {
+    const planId = existing.savingsPlanId;
+    return (
+      <View style={[styles.screen, styles.content, { backgroundColor: theme.colors.background }]}>
+        <EmptyState icon="shield" title="A savings entry" message="Money moved in or out of savings is managed from its plan." />
+        <Button label="Open the plan" variant="outline" onPress={() => router.replace(`/fm/savings/${planId}`)} />
       </View>
     );
   }

@@ -1,18 +1,23 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import * as accountRepository from '@/data/repositories/finance/account-repository';
+import * as savingsRepository from '@/data/repositories/finance/savings-repository';
 import * as transactionRepository from '@/data/repositories/finance/transaction-repository';
-import type { FinAccount, FinTransactionView, MonthKey } from '@/domain/finance/entities';
+import type { BudgetPicture } from '@/domain/finance/budget';
+import type { FinAccount, FinTransactionView, MonthKey, SavingsPlanWithProgress } from '@/domain/finance/entities';
 import {
   availableBalance,
   breakdownByCategory,
   dailyBalances,
+  savedInPlans,
   summarizeMonth,
   type CategoryBreakdown,
   type MonthSummary,
 } from '@/domain/finance/ledger';
 import { datesInMonth, monthKeyOf, monthStart, samePointLastMonth } from '@/domain/finance/month';
 import { addDaysIso } from '@/utils/date';
+
+import { loadBudgetPicture } from './budgets';
 
 export const RECENT_LIMIT = 5;
 
@@ -28,6 +33,8 @@ export interface FinanceOverview {
   monthKey: MonthKey;
   /** Balance today: opening balance plus everything recorded up to and including today. */
   available: number;
+  /** Held in savings plans (set aside, so not part of `available`). */
+  savedInPlans: number;
   summary: MonthSummary;
   /** Spending over the same span of last month, for a like-for-like comparison. */
   spentSamePointLastMonth: number;
@@ -37,6 +44,9 @@ export interface FinanceOverview {
   flows: Record<string, DayFlow>;
   categories: CategoryBreakdown;
   recent: FinTransactionView[];
+  /** Active savings plans, most important first. */
+  plans: SavingsPlanWithProgress[];
+  budgets: BudgetPicture;
   /** Whether anything has been recorded yet (drives the first-run state). */
   isEmpty: boolean;
 }
@@ -47,7 +57,7 @@ export async function loadOverview(db: SQLiteDatabase, today: string): Promise<F
   const start = monthStart(monthKey);
   const lastMonth = samePointLastMonth(today);
 
-  const [account, allTime, beforeMonth, month, lastMonthTotals, flows, categoryTotals, recent, count] =
+  const [account, allTime, beforeMonth, month, lastMonthTotals, flows, categoryTotals, recent, count, plans, budgets] =
     await Promise.all([
       accountRepository.getPrimary(db),
       transactionRepository.totalsBetween(db, { to: today }),
@@ -58,6 +68,8 @@ export async function loadOverview(db: SQLiteDatabase, today: string): Promise<F
       transactionRepository.categoryTotalsBetween(db, start, today, 'expense'),
       transactionRepository.listRecent(db, RECENT_LIMIT),
       transactionRepository.countAll(db),
+      savingsRepository.listPlans(db, { today }),
+      loadBudgetPicture(db, monthKey),
     ]);
 
   const summary = summarizeMonth(account.openingBalanceMinor, beforeMonth, month);
@@ -69,6 +81,7 @@ export async function loadOverview(db: SQLiteDatabase, today: string): Promise<F
     today,
     monthKey,
     available: availableBalance(account.openingBalanceMinor, allTime),
+    savedInPlans: savedInPlans(allTime),
     summary,
     spentSamePointLastMonth: lastMonthTotals.expense,
     dates,
@@ -76,6 +89,8 @@ export async function loadOverview(db: SQLiteDatabase, today: string): Promise<F
     flows,
     categories: breakdownByCategory(categoryTotals, 5),
     recent,
-    isEmpty: count === 0 && account.openingBalanceMinor === 0,
+    plans,
+    budgets,
+    isEmpty: count === 0 && account.openingBalanceMinor === 0 && plans.length === 0,
   };
 }

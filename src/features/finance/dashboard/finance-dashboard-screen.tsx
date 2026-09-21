@@ -14,9 +14,11 @@ import { useAppTheme } from '@/theme';
 import { todayIso } from '@/utils/date';
 
 import { useFinanceOverview } from '../hooks';
+import { useOpenTransaction } from '../use-open-transaction';
 import { BalanceHeroCard } from './balance-hero-card';
 import { CashFlowCard } from './cash-flow-card';
 import { FinanceHeader } from './finance-header';
+import { BudgetsPreview, SavingsPreview } from './goals-budgets-cards';
 import { MonthTiles } from './month-tiles';
 import { WelcomeCard } from './welcome-card';
 
@@ -28,6 +30,7 @@ export function FinanceDashboardScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const { data: overview, isLoading, isError, refetch } = useFinanceOverview();
+  const openTransaction = useOpenTransaction();
 
   const monthKey = overview?.monthKey ?? monthKeyOf(todayIso());
   const currency = overview?.account.currency ?? 'INR';
@@ -37,8 +40,6 @@ export function FinanceDashboardScreen() {
     await queryClient.invalidateQueries({ queryKey: ['finance'] });
     setRefreshing(false);
   };
-
-  const openTransaction = (id: string) => router.push({ pathname: '/modal/transaction', params: { id } });
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
@@ -89,6 +90,7 @@ export function FinanceDashboardScreen() {
             <Stagger index={1}>
               <BalanceHeroCard
                 availableMinor={overview.available}
+                savedInPlansMinor={overview.savedInPlans}
                 summary={overview.summary}
                 monthKey={overview.monthKey}
                 currency={currency}
@@ -107,7 +109,12 @@ export function FinanceDashboardScreen() {
               <CashFlowCard overview={overview} />
             </Stagger>
 
-            <Stagger index={4} style={styles.section}>
+            <Stagger index={4} style={styles.bento}>
+              <BudgetsPreview budgets={overview.budgets} currency={currency} />
+              <SavingsPreview plans={overview.plans} currency={currency} />
+            </Stagger>
+
+            <Stagger index={5} style={styles.section}>
               <SectionHeader title="Where it went" onAction={() => router.navigate('/finance/money')} />
               <Card>
                 {overview.categories.items.length === 0 ? (
@@ -122,12 +129,12 @@ export function FinanceDashboardScreen() {
               </Card>
             </Stagger>
 
-            <Stagger index={5} style={styles.section}>
+            <Stagger index={6} style={styles.section}>
               <SectionHeader title="Recent" onAction={() => router.navigate('/finance/money')} />
               {overview.recent.length === 0 ? (
                 <Card style={styles.emptyCard}>
                   <Text variant="bodyMedium" color="textSecondary" style={styles.center}>
-                    Nothing recorded yet. Your starting balance is set.
+                    Nothing recorded yet.
                   </Text>
                   <Button label="Add expense" icon="plus" size="sm" onPress={() => router.push('/modal/transaction')} />
                 </Card>
@@ -143,7 +150,7 @@ export function FinanceDashboardScreen() {
                           transaction={transaction}
                           currency={currency}
                           showDate
-                          onPress={() => openTransaction(transaction.id)}
+                          onPress={() => openTransaction(transaction)}
                         />
                       </Fragment>
                     ))}
@@ -171,6 +178,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 10,
+  },
+  bento: {
+    gap: 20,
   },
   row: {
     flexDirection: 'row',

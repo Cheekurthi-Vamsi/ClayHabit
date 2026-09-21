@@ -23,6 +23,8 @@ export type { DonutSegment } from './donut-chart';
 export { EmptyState } from './empty-state';
 export { ErrorState } from './error-state';
 export { GradientCard } from './gradient-card';
+export { GroupedBarChart } from './grouped-bar-chart';
+export type { BarGroup } from './grouped-bar-chart';
 export { Heatmap, HeatmapLegend } from './heatmap';
 export { Icon } from './icon';
 export type { IconName } from './icon';
