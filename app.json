@@ -8,7 +8,10 @@
     "scheme": "clayhabit",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to unlock ClayHabit."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -44,7 +47,8 @@
           "icon": "./assets/images/icon.png",
           "color": "#6C5CE7"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

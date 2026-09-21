@@ -17,9 +17,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DATABASE_NAME, migrateDatabase } from '@/data/db/migrate';
 import { seedIfEmpty } from '@/data/repositories/task-repository';
+import { AppLockGate } from '@/features/security/app-lock-gate';
 import { NotificationResponseHandler } from '@/features/tasks/notification-response-handler';
 import { queryClient } from '@/lib/query-client';
 import { configureNotificationHandler } from '@/lib/notifications/notification-service';
+import { useSettingsHydrated } from '@/store/settings-store';
 import { AppThemeProvider, useResolvedScheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -37,25 +39,28 @@ function RootNavigation() {
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <NotificationResponseHandler />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="modal/new-task"
-          options={{ presentation: 'modal', headerShown: true, title: 'New Task' }}
-        />
-        <Stack.Screen
-          name="modal/new-goal"
-          options={{ presentation: 'modal', headerShown: true, title: 'New Goal' }}
-        />
-        <Stack.Screen
-          name="modal/new-event"
-          options={{ presentation: 'modal', headerShown: true, title: 'New Event' }}
-        />
-        <Stack.Screen
-          name="dev/ui-showcase"
-          options={{ headerShown: true, title: 'UI Showcase' }}
-        />
-      </Stack>
+      <AppLockGate>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="modal/new-task"
+            options={{ presentation: 'modal', headerShown: true, title: 'New Task' }}
+          />
+          <Stack.Screen
+            name="modal/new-goal"
+            options={{ presentation: 'modal', headerShown: true, title: 'New Goal' }}
+          />
+          <Stack.Screen
+            name="modal/new-event"
+            options={{ presentation: 'modal', headerShown: true, title: 'New Event' }}
+          />
+          <Stack.Screen name="security/set-pin" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="dev/ui-showcase"
+            options={{ headerShown: true, title: 'UI Showcase' }}
+          />
+        </Stack>
+      </AppLockGate>
     </>
   );
 }
@@ -69,7 +74,8 @@ export default function RootLayout() {
     Manrope_800ExtraBold,
   });
 
-  const ready = fontsLoaded || Boolean(fontError);
+  const settingsHydrated = useSettingsHydrated();
+  const ready = (fontsLoaded || Boolean(fontError)) && settingsHydrated;
 
   useEffect(() => {
     if (ready) {

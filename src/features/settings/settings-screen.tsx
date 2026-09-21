@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Icon, Text } from '@/components/ui';
+import { SecuritySection } from '@/features/security/security-section';
 import { useAppTheme } from '@/theme';
 
 import { AppearanceSection } from './appearance-section';
@@ -27,6 +28,13 @@ export function SettingsScreen() {
           APPEARANCE
         </Text>
         <AppearanceSection />
+      </View>
+
+      <View style={{ gap: theme.spacing.md }}>
+        <Text variant="labelLarge" color="textSecondary">
+          SECURITY
+        </Text>
+        <SecuritySection />
       </View>
 
       {__DEV__ ? (
