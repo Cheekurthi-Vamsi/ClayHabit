@@ -9,6 +9,7 @@ import type { RepeatRule, TaskPriority, TaskWithDetails } from '@/domain/entitie
 import { useAppTheme } from '@/theme';
 import { formatTime12h, todayIso } from '@/utils/date';
 
+import { useGoals } from '../goals/hooks';
 import { useContributionGrid, useSeriesStreak } from '../streaks/hooks';
 import { StreakGrid } from '../streaks/streak-grid';
 import {
@@ -197,6 +198,7 @@ function TaskDetailBody({ task }: { task: TaskWithDetails }) {
   const router = useRouter();
 
   const { data: projects } = useProjects();
+  const { data: goals } = useGoals();
   const updateTask = useUpdateTask();
   const toggleTask = useToggleTask();
   const archiveTask = useArchiveTask();
@@ -357,6 +359,24 @@ function TaskDetailBody({ task }: { task: TaskWithDetails }) {
           ) : (
             <Chip label="+ New" onPress={() => setAddingProject(true)} />
           )}
+        </View>
+      </Section>
+
+      <Section title="Goal">
+        <View style={styles.chipRow}>
+          <Chip
+            label="None"
+            selected={!task.goalId}
+            onPress={() => updateTask.mutate({ id: task.id, input: { goalId: null } })}
+          />
+          {(goals ?? []).map((goal) => (
+            <Chip
+              key={goal.id}
+              label={goal.title}
+              selected={task.goalId === goal.id}
+              onPress={() => updateTask.mutate({ id: task.id, input: { goalId: goal.id } })}
+            />
+          ))}
         </View>
       </Section>
 

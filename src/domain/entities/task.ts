@@ -13,6 +13,7 @@ export interface Task {
   dueTime: string | null;
   priority: TaskPriority;
   projectId: string | null;
+  goalId: string | null;
   repeatRule: RepeatRule | null;
   estimatedMinutes: number | null;
   seriesId: string;
@@ -39,6 +40,7 @@ export interface NewTaskInput {
   dueTime?: string | null;
   priority?: TaskPriority;
   projectId?: string | null;
+  goalId?: string | null;
   repeatRule?: RepeatRule | null;
   estimatedMinutes?: number | null;
   tagIds?: string[];
@@ -54,6 +56,7 @@ export interface UpdateTaskInput {
   dueTime?: string | null;
   priority?: TaskPriority;
   projectId?: string | null;
+  goalId?: string | null;
   repeatRule?: RepeatRule | null;
   estimatedMinutes?: number | null;
 }

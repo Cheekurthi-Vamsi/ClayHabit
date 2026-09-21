@@ -3,14 +3,14 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BentoCard, EmptyState, IconButton, ProgressRing, Skeleton, Text } from '@/components/ui';
+import { BentoCard, Chip, EmptyState, IconButton, ProgressRing, Skeleton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 import type { Note } from '@/domain/entities/note';
 import type { Task } from '@/domain/entities/task';
 import { greetingForHour } from '@/utils/date';
 import { getPreviewText } from '@/utils/markdown';
 
-import { useNotes } from '../notes/hooks';
+import { useCreateNote, useNotes } from '../notes/hooks';
 import { useOverallStreak } from '../streaks/hooks';
 import { useTodayTasks, useToggleTask } from '../tasks/hooks';
 import { TaskListItem } from '../tasks/task-list-item';
@@ -23,6 +23,7 @@ export function DashboardScreen() {
   const { data: streak } = useOverallStreak();
   const { data: notes } = useNotes('active');
   const toggleTask = useToggleTask();
+  const createNote = useCreateNote();
 
   const greeting = useMemo(() => greetingForHour(new Date().getHours()), []);
 
@@ -62,6 +63,16 @@ export function DashboardScreen() {
             </Text>
             <Text variant="displayMedium">Your workspace 👋</Text>
           </View>
+        </View>
+
+        <View style={styles.quickActionsRow}>
+          <Chip
+            icon="file-text"
+            label="New Note"
+            onPress={() => createNote.mutate(undefined, { onSuccess: (note) => router.push(`/note/${note.id}`) })}
+          />
+          <Chip icon="clock" label="Focus" onPress={() => router.push('/focus')} />
+          <Chip icon="target" label="Goals" onPress={() => router.push('/goal')} />
         </View>
 
         <View style={styles.grid}>
@@ -160,6 +171,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   grid: {
     flexDirection: 'row',

@@ -25,6 +25,7 @@ interface TaskRow {
   due_time: string | null;
   priority: TaskPriority;
   project_id: string | null;
+  goal_id: string | null;
   repeat_rule: RepeatRule | null;
   estimated_minutes: number | null;
   series_id: string;
@@ -47,6 +48,7 @@ function toTask(row: TaskRow): Task {
     dueTime: row.due_time,
     priority: row.priority,
     projectId: row.project_id,
+    goalId: row.goal_id,
     repeatRule: row.repeat_rule,
     estimatedMinutes: row.estimated_minutes,
     seriesId: row.series_id,
@@ -94,6 +96,29 @@ export async function listAll(db: SQLiteDatabase, options: ListAllOptions = {}):
   return rows.map(toTask);
 }
 
+export async function listForDateRange(
+  db: SQLiteDatabase,
+  startIso: string,
+  endIso: string,
+): Promise<Task[]> {
+  const rows = await db.getAllAsync<TaskRow>(
+    `SELECT * FROM tasks
+     WHERE is_archived = 0 AND due_date BETWEEN ? AND ?
+     ORDER BY due_date ASC, due_time ASC`,
+    startIso,
+    endIso,
+  );
+  return rows.map(toTask);
+}
+
+export async function listByGoal(db: SQLiteDatabase, goalId: string): Promise<Task[]> {
+  const rows = await db.getAllAsync<TaskRow>(
+    'SELECT * FROM tasks WHERE goal_id = ? AND is_archived = 0 ORDER BY created_at DESC',
+    goalId,
+  );
+  return rows.map(toTask);
+}
+
 export async function countTable(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM tasks');
   return row?.count ?? 0;
@@ -132,6 +157,7 @@ async function insertTaskRow(
     dueTime: string | null;
     priority: TaskPriority;
     projectId: string | null;
+    goalId: string | null;
     repeatRule: RepeatRule | null;
     estimatedMinutes: number | null;
     seriesId: string;
@@ -143,10 +169,10 @@ async function insertTaskRow(
 ): Promise<void> {
   await db.runAsync(
     `INSERT INTO tasks (
-       id, title, description, due_date, due_time, priority, project_id,
+       id, title, description, due_date, due_time, priority, project_id, goal_id,
        repeat_rule, estimated_minutes, series_id, reminder_enabled, reminder_time,
        notification_id, is_archived, is_completed, completed_at, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, NULL, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, NULL, ?, ?)`,
     values.id,
     values.title,
     values.description,
@@ -154,6 +180,7 @@ async function insertTaskRow(
     values.dueTime,
     values.priority,
     values.projectId,
+    values.goalId,
     values.repeatRule,
     values.estimatedMinutes,
     values.seriesId,
@@ -180,6 +207,7 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     dueTime: input.dueTime ?? null,
     priority,
     projectId: input.projectId ?? null,
+    goalId: input.goalId ?? null,
     repeatRule: input.repeatRule ?? null,
     estimatedMinutes: input.estimatedMinutes ?? null,
     seriesId,
@@ -201,6 +229,7 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     dueTime: input.dueTime ?? null,
     priority,
     projectId: input.projectId ?? null,
+    goalId: input.goalId ?? null,
     repeatRule: input.repeatRule ?? null,
     estimatedMinutes: input.estimatedMinutes ?? null,
     seriesId,
@@ -241,7 +270,7 @@ export async function update(
   await db.runAsync(
     `UPDATE tasks SET
        title = ?, description = ?, due_date = ?, due_time = ?, priority = ?,
-       project_id = ?, repeat_rule = ?, estimated_minutes = ?, updated_at = ?
+       project_id = ?, goal_id = ?, repeat_rule = ?, estimated_minutes = ?, updated_at = ?
      WHERE id = ?`,
     input.title?.trim() ?? existing.title,
     input.description !== undefined ? input.description : existing.description,
@@ -249,6 +278,7 @@ export async function update(
     input.dueTime !== undefined ? input.dueTime : existing.dueTime,
     input.priority ?? existing.priority,
     input.projectId !== undefined ? input.projectId : existing.projectId,
+    input.goalId !== undefined ? input.goalId : existing.goalId,
     input.repeatRule !== undefined ? input.repeatRule : existing.repeatRule,
     input.estimatedMinutes !== undefined ? input.estimatedMinutes : existing.estimatedMinutes,
     now,
@@ -310,6 +340,7 @@ export async function setCompleted(
     dueTime: task.dueTime,
     priority: task.priority,
     projectId: task.projectId,
+    goalId: task.goalId,
     repeatRule: task.repeatRule,
     estimatedMinutes: task.estimatedMinutes,
     tagIds: tags.map((tag) => tag.id),

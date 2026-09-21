@@ -44,6 +44,14 @@ function RootNavigation() {
           options={{ presentation: 'modal', headerShown: true, title: 'New Task' }}
         />
         <Stack.Screen
+          name="modal/new-goal"
+          options={{ presentation: 'modal', headerShown: true, title: 'New Goal' }}
+        />
+        <Stack.Screen
+          name="modal/new-event"
+          options={{ presentation: 'modal', headerShown: true, title: 'New Event' }}
+        />
+        <Stack.Screen
           name="dev/ui-showcase"
           options={{ headerShown: true, title: 'UI Showcase' }}
         />

@@ -40,3 +40,22 @@ export function combineDateAndTime(dateIso: string, time: string): Date {
   date.setHours(hour, minute, 0, 0);
   return date;
 }
+
+/**
+ * A fixed 6-week (42-day), Monday-start grid of local dates covering the
+ * given month, padded with adjacent-month days so every month renders the
+ * same grid height.
+ */
+export function getMonthGridDates(year: number, monthIndex: number): string[] {
+  const firstOfMonth = new Date(year, monthIndex, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const cursor = new Date(firstOfMonth);
+  cursor.setDate(cursor.getDate() - startOffset);
+
+  const dates: string[] = [];
+  for (let i = 0; i < 42; i++) {
+    dates.push(toLocalIsoDate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}

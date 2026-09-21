@@ -5,6 +5,7 @@ import * as m0002 from './0002-task-extensions';
 import * as m0003 from './0003-streaks';
 import * as m0004 from './0004-notes';
 import * as m0005 from './0005-reminders';
+import * as m0006 from './0006-calendar-goals-focus';
 
 export interface Migration {
   version: number;
@@ -17,4 +18,5 @@ export const migrations: Migration[] = [
   { version: m0003.version, up: m0003.up },
   { version: m0004.version, up: m0004.up },
   { version: m0005.version, up: m0005.up },
+  { version: m0006.version, up: m0006.up },
 ];
