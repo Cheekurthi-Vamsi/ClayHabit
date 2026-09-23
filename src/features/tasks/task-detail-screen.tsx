@@ -273,6 +273,16 @@ function TaskDetailBody({ task }: { task: TaskWithDetails }) {
         placeholderTextColor={theme.colors.textTertiary}
       />
 
+      {task.sourceType === 'NOTE' && task.sourceId ? (
+        <Button
+          label="Open the note this came from"
+          icon="file-text"
+          variant="soft"
+          size="sm"
+          onPress={() => router.push(`/note/${task.sourceId}`)}
+        />
+      ) : null}
+
       <Section title="Priority">
         <View style={styles.chipRow}>
           {priorities.map((item) => (

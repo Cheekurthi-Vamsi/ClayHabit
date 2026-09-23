@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/expo';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Icon, Text } from '@/components/ui';
+import { useCloud } from '@/features/cloud/cloud-context';
 import { forgetLastUser } from '@/lib/auth/account-database';
 import { useSettingsStore } from '@/store/settings-store';
 import { useAppTheme } from '@/theme';
@@ -16,6 +17,7 @@ export function AccountCard() {
   const { signOut } = useAuth();
   const displayName = useSettingsStore((state) => state.displayName);
   const [signingOut, setSigningOut] = useState(false);
+  const cloud = useCloud();
 
   if (!account) return null;
   const name = account.fullName || displayName || account.email || 'Your account';
@@ -23,7 +25,9 @@ export function AccountCard() {
   const confirmSignOut = () =>
     Alert.alert(
       'Sign out?',
-      'Your data stays safely on this device and comes back when you sign in again.',
+      cloud.enabled
+        ? 'Your data is saved to your Cloud first. Sign in and connect again to get it back on any phone.'
+        : 'Your data stays safely on this device and comes back when you sign in again.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -32,6 +36,8 @@ export function AccountCard() {
           onPress: async () => {
             setSigningOut(true);
             try {
+              // Save the latest changes and let go of Google, so the next sign-in connects again.
+              await cloud.prepareSignOut();
               await signOut();
               await forgetLastUser();
             } catch {

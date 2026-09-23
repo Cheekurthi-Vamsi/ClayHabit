@@ -1,6 +1,5 @@
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAppTheme } from '@/theme';
@@ -23,11 +22,11 @@ function initialsOf(name: string): string {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-/** Initials (or a person glyph) inside a signature-gradient ring. */
+/** The profile photo on its own — or initials / a person glyph when there isn't one. No frame. */
 export function Avatar({ name = '', imageUrl, size = 44, onPress, accessibilityLabel }: AvatarProps) {
   const theme = useAppTheme();
   const initials = initialsOf(name);
-  const ring = 2.5;
+  const circle = { width: size, height: size, borderRadius: size / 2 };
 
   return (
     <Pressable
@@ -39,43 +38,27 @@ export function Avatar({ name = '', imageUrl, size = 44, onPress, accessibilityL
       hitSlop={6}
       accessibilityRole={onPress ? 'button' : 'image'}
       accessibilityLabel={accessibilityLabel ?? (name ? name : 'Profile')}
+      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
     >
-      <LinearGradient
-        colors={theme.gradients.aurora}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ width: size, height: size, borderRadius: size / 2, padding: ring }}
-      >
-        <View
-          style={[
-            styles.inner,
-            { borderRadius: (size - ring * 2) / 2, backgroundColor: theme.colors.surface },
-          ]}
-        >
-          {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={{ width: size - ring * 2, height: size - ring * 2, borderRadius: (size - ring * 2) / 2 }}
-              contentFit="cover"
-              transition={150}
-              accessible={false}
-            />
-          ) : initials ? (
-            <Text variant="titleMedium" color="primary">
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={circle} contentFit="cover" transition={150} accessible={false} />
+      ) : (
+        <View style={[styles.inner, circle, { backgroundColor: theme.colors.primaryMuted }]}>
+          {initials ? (
+            <Text variant="titleMedium" color="primary" style={{ fontSize: size * 0.36, lineHeight: size * 0.46 }}>
               {initials}
             </Text>
           ) : (
             <Icon name="user" size={size * 0.42} color={theme.colors.primary} />
           )}
         </View>
-      </LinearGradient>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   inner: {
-    flex: 1,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',

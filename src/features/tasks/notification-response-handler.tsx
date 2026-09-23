@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 
+import * as noteRepository from '@/data/repositories/note-repository';
 import * as taskRepository from '@/data/repositories/task-repository';
 import {
   addNotificationResponseListener,
@@ -24,6 +25,14 @@ export function NotificationResponseHandler() {
 
   useEffect(() => {
     const unsubscribe = addNotificationResponseListener(async (response) => {
+      const noteId = response.notification.request.content.data?.noteId as string | undefined;
+      if (noteId) {
+        // A note reminder has done its job once it fires and is opened.
+        await noteRepository.setReminder(db, noteId, { at: null, notificationId: null }).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ['notes'] });
+        router.push(`/note/${noteId}`);
+        return;
+      }
       const taskId = response.notification.request.content.data?.taskId as string | undefined;
       if (!taskId) return;
 

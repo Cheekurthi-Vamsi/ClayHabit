@@ -48,33 +48,39 @@ export interface ThemeColors {
 
 export type ColorToken = keyof ThemeColors;
 
+/*
+ * ClayHabbit palette, taken from the brand art in images/: the logo's violet → blue,
+ * the illustration's mint leaves and peach sun, and deep navy ink for text.
+ * Pink is now only a small accent (habit colour), not the signature.
+ */
 export const lightColors: ThemeColors = {
   background: '#F7F8FC',
   backgroundElevated: '#FFFFFF',
   surface: '#FFFFFF',
-  surfaceMuted: '#F1F2F8',
-  surfacePressed: '#E8EAF4',
-  border: '#ECEDF4',
-  borderStrong: '#D9DBE8',
+  surfaceMuted: '#F0F2F9',
+  surfacePressed: '#E5E8F3',
+  border: '#E6E8F1',
+  borderStrong: '#CDD2E2',
 
-  textPrimary: '#171821',
-  textSecondary: '#7C7F8A',
-  textTertiary: '#A6A9B6',
+  // Navy ink, not grey-black: matches the headline colour in the brand art.
+  textPrimary: '#1B2140',
+  textSecondary: '#5B6380',
+  textTertiary: '#8C93AD',
   textInverse: '#FFFFFF',
 
-  primary: '#6C63FF',
-  primaryMuted: '#EEEDFF',
+  primary: '#5B4FE8',
+  primaryMuted: '#ECEAFF',
   onPrimary: '#FFFFFF',
 
-  secondary: '#6ED7FF',
-  secondaryMuted: '#E6F8FF',
+  secondary: '#2F7BE8',
+  secondaryMuted: '#E4EFFD',
 
-  accentLavender: '#A78BFA',
-  accentPurple: '#8B7CFF',
-  accentBlue: '#4F9DFF',
-  accentPink: '#F472B6',
-  accentMint: '#8FE3CF',
-  accentCyan: '#6ED7FF',
+  accentLavender: '#9C8CF8',
+  accentPurple: '#7258F5',
+  accentBlue: '#3E7BEA',
+  accentPink: '#E86F92',
+  accentMint: '#27B893',
+  accentCyan: '#1B9ED0',
 
   finance: '#12A38C',
   financeMuted: '#E3F6F2',
@@ -82,44 +88,44 @@ export const lightColors: ThemeColors = {
   chartIncome: '#1BAF7A',
   chartExpense: '#EB6834',
 
-  success: '#2EBD85',
-  successMuted: '#E3F7EF',
-  warning: '#F5A524',
-  warningMuted: '#FEF3DD',
-  error: '#F0526B',
-  errorMuted: '#FDE6EA',
+  success: '#1FA97A',
+  successMuted: '#E1F6EE',
+  warning: '#E08A12',
+  warningMuted: '#FEF1DC',
+  error: '#E0445E',
+  errorMuted: '#FCE5E9',
 
-  overlay: 'rgba(23, 24, 33, 0.35)',
-  shadow: 'rgba(76, 70, 160, 0.10)',
+  overlay: 'rgba(27, 33, 64, 0.38)',
+  shadow: 'rgba(40, 46, 110, 0.10)',
 };
 
 export const darkColors: ThemeColors = {
-  background: '#0B0B14',
-  backgroundElevated: '#13131F',
-  surface: '#171726',
-  surfaceMuted: '#1F1F33',
-  surfacePressed: '#292942',
-  border: '#262640',
-  borderStrong: '#34345A',
+  background: '#0D1020',
+  backgroundElevated: '#141830',
+  surface: '#181D36',
+  surfaceMuted: '#1F2542',
+  surfacePressed: '#29304F',
+  border: '#262C4A',
+  borderStrong: '#363E63',
 
-  textPrimary: '#F5F5FA',
-  textSecondary: '#A3A5BF',
-  textTertiary: '#6E7091',
-  textInverse: '#171821',
+  textPrimary: '#F2F3FA',
+  textSecondary: '#A7ADC8',
+  textTertiary: '#737A99',
+  textInverse: '#1B2140',
 
-  primary: '#8B84FF',
-  primaryMuted: '#25224A',
+  primary: '#8C82FF',
+  primaryMuted: '#25234D',
   onPrimary: '#FFFFFF',
 
-  secondary: '#6ED7FF',
-  secondaryMuted: '#10303F',
+  secondary: '#5FA2F5',
+  secondaryMuted: '#132A48',
 
-  accentLavender: '#B9A3FF',
-  accentPurple: '#9D90FF',
-  accentBlue: '#74B4FF',
-  accentPink: '#F78CC6',
-  accentMint: '#8FE3CF',
-  accentCyan: '#6ED7FF',
+  accentLavender: '#B4A8FF',
+  accentPurple: '#9A88FF',
+  accentBlue: '#6FA3F7',
+  accentPink: '#F28FAE',
+  accentMint: '#4FD3B0',
+  accentCyan: '#4CC2EA',
 
   finance: '#3CCFB6',
   financeMuted: '#0F2E2A',
@@ -127,9 +133,9 @@ export const darkColors: ThemeColors = {
   chartIncome: '#199E70',
   chartExpense: '#D95926',
 
-  success: '#3FD99A',
+  success: '#3FD19E',
   successMuted: '#0F3326',
-  warning: '#FFB94D',
+  warning: '#FFB54A',
   warningMuted: '#3A2C10',
   error: '#FF6F86',
   errorMuted: '#3B1620',
@@ -145,11 +151,13 @@ export interface ThemeGradients {
   primary: GradientStops;
   /** Blue → cyan. Focus-related surfaces. */
   secondary: GradientStops;
+  /** Clay: burnt orange → terracotta. Warm call-to-action cards (habits, notes). */
   lavenderPink: GradientStops;
+  /** Mint → ocean. Completion and money-in. */
   mintCyan: GradientStops;
-  /** Pink → purple. Streak card. */
+  /** Amber → ember. Streaks (fire). */
   pinkPurple: GradientStops;
-  /** Pink → purple → blue. The app's signature gradient (center + button). */
+  /** Violet → indigo → blue, from the logo. The app's signature gradient. */
   aurora: GradientStops;
   /** Barely-there blue/purple wash for large hero surfaces with dark text on top. */
   heroSoft: GradientStops;
@@ -157,25 +165,26 @@ export interface ThemeGradients {
   finance: GradientStops;
 }
 
+// Every stop is deep enough for white text on top (≥ 3:1 for the bold/large text used on cards).
 export const gradients: { light: ThemeGradients; dark: ThemeGradients } = {
   light: {
-    primary: ['#8B7CFF', '#65C7FF'],
-    secondary: ['#4F9DFF', '#6ED7FF'],
-    lavenderPink: ['#C4B5FD', '#F9A8D4'],
-    mintCyan: ['#8FE3CF', '#6ED7FF'],
-    pinkPurple: ['#F472B6', '#8B7CFF'],
-    aurora: ['#F472B6', '#A78BFA', '#65C7FF'],
-    heroSoft: ['#EEEBFF', '#F5EEFF', '#E6F5FF'],
+    primary: ['#6F57F2', '#3A74E6'],
+    secondary: ['#3A6FE0', '#1685BF'],
+    lavenderPink: ['#DB7440', '#C24E43'],
+    mintCyan: ['#119C80', '#1780BD'],
+    pinkPurple: ['#D86F1B', '#CF4638'],
+    aurora: ['#7258F5', '#5561EC', '#3A74E6'],
+    heroSoft: ['#EEEFFF', '#F2F0FF', '#E8F3FE'],
     finance: ['#12A38C', '#0F8C84', '#2B6FD0'],
   },
   dark: {
-    primary: ['#7B6CF5', '#4FA9E8'],
-    secondary: ['#3F83E0', '#4FBFE3'],
-    lavenderPink: ['#8E78E0', '#D877AE'],
-    mintCyan: ['#4FB89F', '#4FBFE3'],
-    pinkPurple: ['#D9579C', '#7B6CF5'],
-    aurora: ['#D9579C', '#8E78E0', '#4FA9E8'],
-    heroSoft: ['#1C1936', '#221A39', '#142336'],
+    primary: ['#6450E6', '#2F66D6'],
+    secondary: ['#2F5FCC', '#12739F'],
+    lavenderPink: ['#C0612F', '#A83F37'],
+    mintCyan: ['#0E826B', '#136B9E'],
+    pinkPurple: ['#C9681A', '#B23A2E'],
+    aurora: ['#6450E6', '#4A55D8', '#2F66D6'],
+    heroSoft: ['#1A1C3A', '#1D1B3B', '#132640'],
     finance: ['#0E8272', '#0B6E69', '#2459A8'],
   },
 };

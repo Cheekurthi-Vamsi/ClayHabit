@@ -103,11 +103,43 @@ export async function scheduleTaskReminder(input: ScheduleTaskReminderInput): Pr
   });
 }
 
+interface ScheduleNoteReminderInput {
+  noteId: string;
+  title: string;
+  body?: string;
+  date: Date;
+}
+
+/** A plain reminder that opens a note when tapped (no Mark Done / Snooze actions). */
+export async function scheduleNoteReminder(input: ScheduleNoteReminderInput): Promise<string | null> {
+  const Notifications = getNotifications();
+  if (!Notifications) return null;
+
+  return Notifications.scheduleNotificationAsync({
+    content: {
+      title: input.title,
+      body: input.body,
+      data: { noteId: input.noteId },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: input.date,
+    },
+  });
+}
+
 export async function cancelReminder(notificationId: string | null): Promise<void> {
   if (!notificationId) return;
   const Notifications = getNotifications();
   if (!Notifications) return;
   await Notifications.cancelScheduledNotificationAsync(notificationId).catch(() => {});
+}
+
+/** Clears every reminder this app scheduled — used when the data they belonged to is replaced. */
+export async function cancelAllReminders(): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
 }
 
 type NotificationResponse = import('expo-notifications').NotificationResponse;

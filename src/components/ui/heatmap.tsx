@@ -64,7 +64,7 @@ export function Heatmap({
     const col = Math.floor(x / step);
     const row = Math.floor(y / step);
     const cell = columns[col]?.[row];
-    if (cell && !cell.isFuture) onSelectDate(cell.date);
+    if (cell && !cell.isFuture && !cell.isOutside) onSelectDate(cell.date);
   };
 
   const grid = (
@@ -90,7 +90,7 @@ export function Heatmap({
         <Svg width={width} height={height}>
           {columns.map((week, col) =>
             week.map((cell, row) => {
-              if (cell.isFuture) return null;
+              if (cell.isFuture || cell.isOutside) return null;
               const level = levelFor(cell.date);
               const isSelected = cell.date === selectedDate;
               return (

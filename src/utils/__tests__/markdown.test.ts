@@ -1,4 +1,4 @@
-import { deriveTitleFromBody, getPreviewText } from '../markdown';
+import { bodyPreview, deriveTitleFromBody, displayTitle, splitTitleFromBody } from '../markdown';
 
 describe('deriveTitleFromBody', () => {
   it('uses the first non-empty line as the title', () => {
@@ -20,18 +20,36 @@ describe('deriveTitleFromBody', () => {
   });
 });
 
-describe('getPreviewText', () => {
-  it('joins lines after the title, stripping markdown symbols', () => {
-    const body = 'Project Ideas\n**Bold idea**\n- bullet point';
-    expect(getPreviewText(body)).toBe('Bold idea bullet point');
+describe('bodyPreview', () => {
+  it('joins lines, stripping markdown symbols', () => {
+    expect(bodyPreview('**Bold idea**\n- bullet point')).toBe('Bold idea bullet point');
+  });
+
+  it('can skip a first line that is already the title', () => {
+    expect(bodyPreview('Project Ideas\n**Bold idea**', { skipFirstLine: true })).toBe('Bold idea');
+    expect(bodyPreview('Just a title', { skipFirstLine: true })).toBe('');
   });
 
   it('strips checklist marker prefixes from every preview line', () => {
-    const body = 'Groceries\n- [ ] Milk\n- [x] Eggs';
-    expect(getPreviewText(body)).toBe('Milk Eggs');
+    expect(bodyPreview('- [ ] Milk\n- [x] Eggs')).toBe('Milk Eggs');
+  });
+});
+
+describe('splitTitleFromBody', () => {
+  it('moves the first line into the title and drops the blank lines after it', () => {
+    expect(splitTitleFromBody('\n## Plan\n\n- [ ] Call\nMore')).toEqual({ title: 'Plan', body: '- [ ] Call\nMore' });
   });
 
-  it('returns an empty string when there is only a title', () => {
-    expect(getPreviewText('Just a title')).toBe('');
+  it('handles empty and title-only bodies', () => {
+    expect(splitTitleFromBody('')).toEqual({ title: '', body: '' });
+    expect(splitTitleFromBody('Only')).toEqual({ title: 'Only', body: '' });
+  });
+});
+
+describe('displayTitle', () => {
+  it('prefers the title, then the first line, then Untitled', () => {
+    expect(displayTitle({ title: 'Ideas', body: 'x' })).toBe('Ideas');
+    expect(displayTitle({ title: ' ', body: '# First line' })).toBe('First line');
+    expect(displayTitle({ title: '', body: '' })).toBe('Untitled');
   });
 });

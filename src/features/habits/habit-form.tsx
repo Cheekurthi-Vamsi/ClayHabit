@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 

@@ -10,6 +10,8 @@ import * as m0007 from './0007-habits';
 import * as m0008 from './0008-habit-icons';
 import * as m0009 from './0009-finance';
 import * as m0010 from './0010-finance-plans';
+import * as m0011 from './0011-note-style';
+import * as m0012 from './0012-notes-workspace';
 
 export interface Migration {
   version: number;
@@ -27,4 +29,9 @@ export const migrations: Migration[] = [
   { version: m0008.version, up: m0008.up },
   { version: m0009.version, up: m0009.up },
   { version: m0010.version, up: m0010.up },
+  { version: m0011.version, up: m0011.up },
+  { version: m0012.version, up: m0012.up },
 ];
+
+/** The schema version this build of the app writes. */
+export const LATEST_SCHEMA_VERSION = Math.max(...migrations.map((migration) => migration.version));

@@ -3,6 +3,7 @@ import * as noteRepository from '@/data/repositories/note-repository';
 import * as tagRepository from '@/data/repositories/tag-repository';
 
 import { migrateDatabase } from '../migrate';
+import { migrations } from '../migrations';
 import { createTestDb } from '../testing/create-test-db';
 
 describe('noteRepository', () => {
@@ -92,5 +93,53 @@ describe('noteRepository', () => {
 
     const withTags = await noteRepository.getWithTags(db, note.id);
     expect(withTags?.tags.map((t) => t.name)).toEqual(['ideas']);
+  });
+
+  it('saves the title and body independently, bumping the version each time', async () => {
+    const db = createTestDb();
+    await migrateDatabase(db);
+
+    const note = await noteRepository.create(db, { title: 'Weekend plan', body: '- [ ] Hike' });
+    await noteRepository.update(db, note.id, { body: '- [x] Hike' });
+    await noteRepository.update(db, note.id, { title: 'Trip' });
+    // Moving folders doesn't touch the text.
+    await noteRepository.update(db, note.id, { folderId: null });
+
+    expect(await noteRepository.getById(db, note.id)).toMatchObject({ title: 'Trip', body: '- [x] Hike', version: 4 });
+  });
+
+  it('stores a colour and paper per note, defaulting to plain white and the app-wide paper', async () => {
+    const db = createTestDb();
+    await migrateDatabase(db);
+
+    const note = await noteRepository.create(db, { body: 'Hi' });
+    expect(note).toMatchObject({ color: 'default', paper: null });
+
+    await noteRepository.update(db, note.id, { color: 'mint', paper: 'dots' });
+    expect(await noteRepository.getById(db, note.id)).toMatchObject({ color: 'mint', paper: 'dots', body: 'Hi' });
+
+    await noteRepository.update(db, note.id, { paper: null });
+    expect(await noteRepository.getById(db, note.id)).toMatchObject({ color: 'mint', paper: null });
+  });
+
+  it('backfills titles for notes saved before titles were cached', async () => {
+    const db = createTestDb();
+    for (const migration of migrations.filter((m) => m.version <= 10)) await migration.up(db);
+    await db.execAsync('PRAGMA user_version = 10');
+    await db.runAsync(
+      "INSERT INTO notes (id, title, body, created_at, updated_at) VALUES ('n1', '', ?, 'x', 'x')",
+      ['## Old note', 'body'].join('\n'),
+    );
+
+    await migrateDatabase(db);
+    // Migration 12 then moves that first line out of the body, so it isn't shown twice.
+    expect(await noteRepository.getById(db, 'n1')).toMatchObject({
+      title: 'Old note',
+      body: 'body',
+      color: 'default',
+      paper: null,
+      noteType: 'standard',
+      isLocked: false,
+    });
   });
 });

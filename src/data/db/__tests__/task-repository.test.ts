@@ -14,23 +14,17 @@ describe('migrations + taskRepository', () => {
     await migrateDatabase(db);
 
     const version = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    expect(version?.user_version).toBe(10);
+    expect(version?.user_version).toBe(12);
 
     const count = await taskRepository.countTable(db);
     expect(count).toBe(0);
   });
 
-  it('seeds sample tasks only when the table is empty', async () => {
+  it('starts with no sample data', async () => {
     const db = createTestDb();
     await migrateDatabase(db);
-
-    await taskRepository.seedIfEmpty(db);
-    const afterFirstSeed = await taskRepository.countTable(db);
-    expect(afterFirstSeed).toBeGreaterThan(0);
-
-    await taskRepository.seedIfEmpty(db);
-    const afterSecondSeed = await taskRepository.countTable(db);
-    expect(afterSecondSeed).toBe(afterFirstSeed);
+    expect(await taskRepository.countTable(db)).toBe(0);
+    expect(await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM notes')).toEqual({ count: 0 });
   });
 
   it('creates a task and lists it for today', async () => {

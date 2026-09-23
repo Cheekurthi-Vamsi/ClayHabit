@@ -35,6 +35,8 @@ interface TaskRow {
   is_archived: number;
   is_completed: number;
   completed_at: string | null;
+  source_type: string | null;
+  source_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +60,8 @@ function toTask(row: TaskRow): Task {
     isArchived: row.is_archived === 1,
     isCompleted: row.is_completed === 1,
     completedAt: row.completed_at,
+    sourceType: row.source_type === 'NOTE' ? 'NOTE' : null,
+    sourceId: row.source_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -163,6 +167,8 @@ async function insertTaskRow(
     seriesId: string;
     reminderEnabled: boolean;
     reminderTime: string | null;
+    sourceType?: string | null;
+    sourceId?: string | null;
     createdAt: string;
     updatedAt: string;
   },
@@ -171,8 +177,8 @@ async function insertTaskRow(
     `INSERT INTO tasks (
        id, title, description, due_date, due_time, priority, project_id, goal_id,
        repeat_rule, estimated_minutes, series_id, reminder_enabled, reminder_time,
-       notification_id, is_archived, is_completed, completed_at, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, NULL, ?, ?)`,
+       notification_id, is_archived, is_completed, completed_at, source_type, source_id, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, NULL, ?, ?, ?, ?)`,
     values.id,
     values.title,
     values.description,
@@ -186,6 +192,8 @@ async function insertTaskRow(
     values.seriesId,
     values.reminderEnabled ? 1 : 0,
     values.reminderTime,
+    values.sourceType ?? null,
+    values.sourceId ?? null,
     values.createdAt,
     values.updatedAt,
   );
@@ -213,6 +221,8 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     seriesId,
     reminderEnabled,
     reminderTime,
+    sourceType: input.sourceType ?? null,
+    sourceId: input.sourceId ?? null,
     createdAt: now,
     updatedAt: now,
   });
@@ -239,6 +249,8 @@ export async function create(db: SQLiteDatabase, input: NewTaskInput): Promise<T
     isArchived: false,
     isCompleted: false,
     completedAt: null,
+    sourceType: input.sourceType ?? null,
+    sourceId: input.sourceId ?? null,
     createdAt: now,
     updatedAt: now,
   };
@@ -354,21 +366,4 @@ export async function setCompleted(
 
 export async function getStreakDates(db: SQLiteDatabase, seriesId: string): Promise<string[]> {
   return completionRepository.listDatesForSeries(db, seriesId);
-}
-
-export async function seedIfEmpty(db: SQLiteDatabase): Promise<void> {
-  const count = await countTable(db);
-  if (count > 0) return;
-
-  const today = todayIso();
-  const sample: NewTaskInput[] = [
-    { title: 'Review cybersecurity project notes', dueDate: today, dueTime: '09:30', priority: 'high' },
-    { title: 'Finish onboarding flow wireframes', dueDate: today, dueTime: '13:00', priority: 'medium' },
-    { title: 'Reply to team standup thread', dueDate: today, priority: 'low' },
-    { title: 'Plan next week focus blocks', dueDate: today, dueTime: '18:00', priority: 'medium' },
-  ];
-
-  for (const task of sample) {
-    await create(db, task);
-  }
 }

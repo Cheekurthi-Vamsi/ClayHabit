@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 
+import { useSettingsStore } from '@/store/settings-store';
+
+/** True when the system asks for reduced motion, or the person turned on Settings → Reduce animations. */
 export function useReduceMotion(): boolean {
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [systemReduceMotion, setSystemReduceMotion] = useState(false);
+  const appReduceMotion = useSettingsStore((state) => state.reduceMotion);
 
   useEffect(() => {
     let mounted = true;
 
     AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (mounted) setReduceMotion(enabled);
+      if (mounted) setSystemReduceMotion(enabled);
     });
 
     const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
-      setReduceMotion(enabled);
+      setSystemReduceMotion(enabled);
     });
 
     return () => {
@@ -21,5 +25,5 @@ export function useReduceMotion(): boolean {
     };
   }, []);
 
-  return reduceMotion;
+  return systemReduceMotion || appReduceMotion;
 }

@@ -18,7 +18,7 @@ export function WelcomeCard() {
         Your financial story starts here.
       </Text>
       <Text variant="bodyMedium" style={styles.whiteMuted}>
-        Add your first expense or income and ClayHabit keeps the balance for you, privately, on this device.
+        Add your first expense or income and ClayHabbit keeps the balance for you, privately, on this device.
       </Text>
       <View style={styles.actions}>
         <Button

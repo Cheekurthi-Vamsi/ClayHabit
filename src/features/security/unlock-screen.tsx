@@ -6,7 +6,7 @@ import { IconButton, Text } from '@/components/ui';
 import {
   authenticateWithBiometrics,
   isBiometricAvailable,
-  verifyPin,
+  checkPin,
 } from '@/lib/security/app-lock-service';
 import { useAppLockStore } from '@/store/app-lock-store';
 import { useSettingsStore } from '@/store/settings-store';
@@ -23,6 +23,16 @@ export function UnlockScreen() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Counts down a lockout after too many wrong PINs.
+  useEffect(() => {
+    if (waitUntil <= Date.now()) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [waitUntil]);
+  const secondsLeft = Math.max(0, Math.ceil((waitUntil - now) / 1000));
 
   useEffect(() => {
     let cancelled = false;
@@ -45,10 +55,14 @@ export function UnlockScreen() {
   }, []);
 
   const handlePinComplete = async (pin: string) => {
-    const valid = await verifyPin(pin);
-    if (valid) {
+    const result = await checkPin(pin);
+    if (result.ok) {
       setSessionUnlocked(true);
     } else {
+      if (result.waitMs > 0) {
+        setWaitUntil(Date.now() + result.waitMs);
+        setNow(Date.now());
+      }
       setError(true);
       setAttempt((prev) => prev + 1);
       setTimeout(() => setError(false), 400);
@@ -64,11 +78,15 @@ export function UnlockScreen() {
     >
       <Text variant="displayMedium">Welcome back</Text>
       <Text variant="bodyMedium" color="textSecondary" style={styles.subtitle}>
-        Enter your PIN to unlock ClayHabit
+        {secondsLeft > 0
+          ? `Too many wrong PINs. Try again in ${secondsLeft}s.`
+          : 'Enter your PIN to unlock ClayHabbit'}
       </Text>
 
-      <View style={styles.padWrap}>
-        <PinPad key={attempt} onComplete={handlePinComplete} error={error} />
+      <View style={styles.padWrap} pointerEvents={secondsLeft > 0 ? 'none' : 'auto'}>
+        <View style={{ opacity: secondsLeft > 0 ? 0.4 : 1 }}>
+          <PinPad key={attempt} onComplete={handlePinComplete} error={error} />
+        </View>
       </View>
 
       {biometricAvailable && biometricEnabled && (

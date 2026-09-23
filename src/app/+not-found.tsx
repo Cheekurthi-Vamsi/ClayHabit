@@ -1,36 +1,9 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Redirect } from 'expo-router';
 
-import { Text } from '@/components/ui';
-import { useAppTheme } from '@/theme';
-
+/**
+ * Any path the app doesn't know (a stale deep link, an auth redirect) goes
+ * straight home rather than to a dead end.
+ */
 export default function NotFoundScreen() {
-  const theme = useAppTheme();
-
-  return (
-    <>
-      <Stack.Screen options={{ title: 'Not Found' }} />
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text variant="titleLarge">This screen doesn&apos;t exist.</Text>
-        <Link href="/" style={styles.link}>
-          <Text variant="bodyLarge" color="primary">
-            Go to home screen
-          </Text>
-        </Link>
-      </View>
-    </>
-  );
+  return <Redirect href="/" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    gap: 16,
-  },
-  link: {
-    marginTop: 8,
-  },
-});

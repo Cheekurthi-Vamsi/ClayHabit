@@ -8,6 +8,7 @@ import * as taskRepository from '@/data/repositories/task-repository';
 import type { NewProjectInput } from '@/domain/entities/project';
 import type { NewTaskInput, Task, UpdateTaskInput } from '@/domain/entities/task';
 import {
+  cancelAllReminders,
   cancelReminder,
   requestPermission,
   scheduleTaskReminder,
@@ -60,6 +61,20 @@ export async function scheduleReminderForTask(
   });
 
   await taskRepository.setReminder(db, task.id, { enabled: true, time, notificationId });
+}
+
+/**
+ * After the Cloud replaces this phone's data, the reminders scheduled here
+ * belong to the old data (and the restored ones were scheduled on another
+ * phone). Start over from what the database now says.
+ */
+export async function rescheduleAllReminders(db: SQLiteDatabase): Promise<void> {
+  await cancelAllReminders();
+  const tasks = await taskRepository.listAll(db);
+  for (const task of tasks) {
+    if (task.isCompleted || !task.reminderEnabled || !task.reminderTime) continue;
+    await scheduleReminderForTask(db, task, true, task.reminderTime).catch(() => {});
+  }
 }
 
 /**

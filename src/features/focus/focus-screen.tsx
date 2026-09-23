@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, EmptyState, IconButton, ProgressRing, Text } from '@/components/ui';
+import { useSettingsStore } from '@/store/settings-store';
 import { useAppTheme } from '@/theme';
 
 import { useFinishFocusSession, useRecentFocusSessions, useStartFocusSession, useTodayFocusMinutes } from './hooks';
@@ -32,8 +33,10 @@ export function FocusScreen() {
   const { data: recentSessions } = useRecentFocusSessions();
   const { data: todayMinutes } = useTodayFocusMinutes();
 
-  const [plannedMinutes, setPlannedMinutes] = useState(25);
-  const [customInput, setCustomInput] = useState(false);
+  // Settings → Focus length decides where the timer starts.
+  const defaultMinutes = useSettingsStore((state) => state.defaultFocusMinutes);
+  const [plannedMinutes, setPlannedMinutes] = useState(defaultMinutes);
+  const [customInput, setCustomInput] = useState(!PRESETS.includes(defaultMinutes));
   const [session, setSession] = useState<ActiveSession | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isPaused, setIsPaused] = useState(false);

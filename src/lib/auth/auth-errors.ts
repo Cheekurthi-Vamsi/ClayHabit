@@ -6,7 +6,7 @@
  */
 
 export const OFFLINE_MESSAGE =
-  "You're offline. Connect once to sign in — after that, ClayHabit works without a connection.";
+  "You're offline. Connect once to sign in — after that, ClayHabbit works without a connection.";
 
 const FRIENDLY_BY_CODE: Record<string, string> = {
   form_password_incorrect: 'That password doesn’t match this account.',

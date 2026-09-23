@@ -15,6 +15,7 @@ import type {
   UpdateTransactionInput,
 } from '@/domain/finance/entities';
 import { monthEnd, monthStart } from '@/domain/finance/month';
+import type { StatsPeriod } from '@/domain/finance/period';
 import { todayIso } from '@/utils/date';
 
 import { loadBudgetPicture } from './budgets';
@@ -264,12 +265,13 @@ export function useSavingsMutations() {
 
 // ---- stats ----------------------------------------------------------------
 
-export function useFinanceStats() {
+export function useFinanceStats(period: StatsPeriod) {
   const db = useSQLiteContext();
   const today = todayIso();
   return useQuery({
-    queryKey: [FINANCE, 'stats', today],
-    queryFn: () => loadFinanceStats(db, today),
+    queryKey: [FINANCE, 'stats', today, period],
+    queryFn: () => loadFinanceStats(db, today, period),
+    // Switching periods keeps the last render on screen (dimmed) instead of flashing skeletons.
     placeholderData: (previous) => previous,
   });
 }

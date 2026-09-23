@@ -1,5 +1,5 @@
-import { NotesListScreen } from '@/features/notes/notes-list-screen';
+import { NotesHomeScreen } from '@/features/notes/notes-home-screen';
 
 export default function Notes() {
-  return <NotesListScreen />;
+  return <NotesHomeScreen />;
 }

@@ -6,6 +6,8 @@ export interface CalendarCell {
   date: string;
   isToday: boolean;
   isFuture: boolean;
+  /** Padding before the grid's first day (e.g. the late-December days in a year's first week). Not drawn. */
+  isOutside?: boolean;
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -27,6 +29,29 @@ export function buildCalendarColumns(weeks: number, todayIso: string): CalendarC
     for (let d = 0; d < 7; d++) {
       const iso = toLocalIsoDate(cursor);
       column.push({ date: iso, isToday: iso === todayIso, isFuture: iso > todayIso });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    columns.push(column);
+  }
+  return columns;
+}
+
+/**
+ * Monday-start columns covering [fromIso, toIso] — a calendar year, say.
+ * Padding days before `fromIso` are flagged `isOutside`, days after `toIso`
+ * (or after today) `isFuture`, so neither is drawn.
+ */
+export function buildRangeColumns(fromIso: string, toIso: string, todayIso: string): CalendarCell[][] {
+  const cursor = new Date(`${fromIso}T00:00:00`);
+  cursor.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7));
+  const last = toIso < todayIso ? toIso : todayIso;
+
+  const columns: CalendarCell[][] = [];
+  while (toLocalIsoDate(cursor) <= last) {
+    const column: CalendarCell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const iso = toLocalIsoDate(cursor);
+      column.push({ date: iso, isToday: iso === todayIso, isFuture: iso > last, isOutside: iso < fromIso });
       cursor.setDate(cursor.getDate() + 1);
     }
     columns.push(column);

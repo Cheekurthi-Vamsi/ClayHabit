@@ -1,4 +1,4 @@
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { Pressable, ScrollView, StyleSheet, Text as RNText, View } from 'react-native';
 
 import { Text } from '@/components/ui';

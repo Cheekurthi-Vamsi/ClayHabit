@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';

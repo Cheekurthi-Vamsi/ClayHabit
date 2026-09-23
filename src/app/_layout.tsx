@@ -7,6 +7,12 @@ import {
   Manrope_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/manrope';
+import {
+  SourceSerif4_400Regular,
+  SourceSerif4_500Medium,
+  SourceSerif4_600SemiBold,
+  SourceSerif4_700Bold,
+} from '@expo-google-fonts/source-serif-4';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -16,9 +22,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { migrateDatabase } from '@/data/db/migrate';
-import { seedIfEmpty } from '@/data/repositories/task-repository';
 import { AuthGate } from '@/features/auth/auth-gate';
 import { AuthProvider } from '@/features/auth/auth-provider';
+import { CloudGate } from '@/features/cloud/cloud-gate';
 import { AppLockGate } from '@/features/security/app-lock-gate';
 import { NotificationResponseHandler } from '@/features/tasks/notification-response-handler';
 import { queryClient } from '@/lib/query-client';
@@ -29,10 +35,13 @@ import { AppThemeProvider, useAppTheme, useResolvedScheme } from '@/theme';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 configureNotificationHandler();
 
+// No sample data: a new account starts empty, and a returning one is restored from its Cloud.
 async function onInitDatabase(db: SQLiteDatabase) {
   await migrateDatabase(db);
-  await seedIfEmpty(db);
 }
+
+// Change events tell the Cloud sync when there is something new to save.
+const DATABASE_OPTIONS = { enableChangeListener: true };
 
 function RootNavigation() {
   const scheme = useResolvedScheme();
@@ -111,6 +120,10 @@ export default function RootLayout() {
     Manrope_600SemiBold,
     Manrope_700Bold,
     Manrope_800ExtraBold,
+    SourceSerif4_400Regular,
+    SourceSerif4_500Medium,
+    SourceSerif4_600SemiBold,
+    SourceSerif4_700Bold,
   });
 
   const settingsHydrated = useSettingsHydrated();
@@ -134,9 +147,17 @@ export default function RootLayout() {
             {/* Signed out → sign-in screen. Signed in → that account's own database. */}
             <AuthGate>
               {(databaseName) => (
-                <SQLiteProvider key={databaseName} databaseName={databaseName} onInit={onInitDatabase}>
+                <SQLiteProvider
+                  key={databaseName}
+                  databaseName={databaseName}
+                  options={DATABASE_OPTIONS}
+                  onInit={onInitDatabase}
+                >
                   <QueryClientProvider client={queryClient}>
-                    <RootNavigation />
+                    {/* Connected Cloud (Google Drive) → data restored → app. */}
+                    <CloudGate>
+                      <RootNavigation />
+                    </CloudGate>
                   </QueryClientProvider>
                 </SQLiteProvider>
               )}

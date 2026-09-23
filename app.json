@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ClayHabit",
+    "name": "ClayHabbit",
     "slug": "clayhabit",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,17 +10,41 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID to unlock ClayHabit."
+        "NSFaceIDUsageDescription": "Use Face ID to unlock ClayHabbit."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#EFEBFF",
+        "backgroundColor": "#6D6BF8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kernalpanic.clayhabit",
+      "versionCode": 1,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+        "android.permission.READ_APP_BADGE",
+        "com.sec.android.provider.badge.permission.READ",
+        "com.sec.android.provider.badge.permission.WRITE",
+        "com.htc.launcher.permission.READ_SETTINGS",
+        "com.htc.launcher.permission.UPDATE_SHORTCUT",
+        "com.sonyericsson.home.permission.BROADCAST_BADGE",
+        "com.sonymobile.home.permission.PROVIDER_INSERT_BADGE",
+        "com.anddoes.launcher.permission.UPDATE_COUNT",
+        "com.majeur.launcher.permission.UPDATE_BADGE",
+        "com.huawei.android.launcher.permission.CHANGE_BADGE",
+        "com.huawei.android.launcher.permission.READ_SETTINGS",
+        "com.huawei.android.launcher.permission.WRITE_SETTINGS",
+        "com.oppo.launcher.permission.READ_SETTINGS",
+        "com.oppo.launcher.permission.WRITE_SETTINGS",
+        "me.everything.badger.permission.BADGE_COUNT_READ",
+        "me.everything.badger.permission.BADGE_COUNT_WRITE"
+      ]
     },
     "web": {
       "output": "static",
@@ -31,11 +55,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#6C5CE7",
+          "backgroundColor": "#F7F8FC",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76,
+          "imageWidth": 120,
           "dark": {
-            "backgroundColor": "#0D0E1A"
+            "backgroundColor": "#0E1020"
           }
         }
       ],
@@ -45,10 +69,11 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#6C5CE7"
+          "color": "#6D6BF8"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/with-android-build.js"
     ],
     "experiments": {
       "typedRoutes": true,

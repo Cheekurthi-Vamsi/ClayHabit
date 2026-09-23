@@ -3,14 +3,14 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { Card, Icon, Text } from '@/components/ui';
-import type { Note } from '@/domain/entities/note';
+import type { NoteSummary } from '@/domain/entities/note';
 import { useAppTheme } from '@/theme';
 import { formatRelativeTime } from '@/utils/date';
-import { getPreviewText } from '@/utils/markdown';
+import { displayTitle } from '@/utils/markdown';
 
 import { useCreateNote } from '../notes/hooks';
 
-export function QuickNoteCard({ note }: { note: Note | null }) {
+export function QuickNoteCard({ note }: { note: NoteSummary | null }) {
   const theme = useAppTheme();
   const router = useRouter();
   const createNote = useCreateNote();
@@ -20,8 +20,12 @@ export function QuickNoteCard({ note }: { note: Note | null }) {
     else createNote.mutate(undefined, { onSuccess: (created) => router.push(`/note/${created.id}`) });
   };
 
-  const title = note ? note.title.trim() || 'New Note' : 'Capture a thought';
-  const preview = note ? getPreviewText(note.body) || 'No additional text' : 'Tap to start a new note.';
+  const title = note ? displayTitle({ title: note.title, body: note.excerpt }) : 'Capture a thought';
+  const preview = note
+    ? note.isLocked
+      ? 'Locked note'
+      : note.excerpt || 'No additional text'
+    : 'Tap to start a new note.';
 
   return (
     <Card onPress={open} accessibilityLabel={note ? `Open note ${title}` : 'Write a new note'} style={styles.card}>
@@ -31,7 +35,7 @@ export function QuickNoteCard({ note }: { note: Note | null }) {
         end={{ x: 1, y: 1 }}
         style={styles.icon}
       >
-        <Icon name={note ? 'file-text' : 'edit-3'} size={18} color="#FFFFFF" />
+        <Icon name={note ? (note.isLocked ? 'lock' : 'file-text') : 'edit-3'} size={18} color="#FFFFFF" />
       </LinearGradient>
       <View style={styles.body}>
         <Text variant="titleMedium" numberOfLines={1}>

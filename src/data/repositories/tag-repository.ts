@@ -14,7 +14,7 @@ function toTag(row: TagRow): Tag {
   return { id: row.id, name: row.name, color: row.color, createdAt: row.created_at };
 }
 
-const TAG_PALETTE = ['#6C5CE7', '#3E8BFF', '#22B8D0', '#22C79A', '#E39A1B', '#E9535A'];
+const TAG_PALETTE = ['#6F57F2', '#3A74E6', '#1792C4', '#1FA985', '#E08A12', '#DC5F84'];
 
 export async function listAll(db: SQLiteDatabase): Promise<Tag[]> {
   const rows = await db.getAllAsync<TagRow>('SELECT * FROM tags ORDER BY name ASC');
@@ -61,4 +61,20 @@ export async function setTagsForTask(
   for (const tagId of tagIds) {
     await db.runAsync('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)', taskId, tagId);
   }
+}
+
+export interface TagWithCount extends Tag {
+  noteCount: number;
+}
+
+/** Tags used on at least one active note, with how many — for the Notes tag filter and picker. */
+export async function listForNotes(db: SQLiteDatabase): Promise<TagWithCount[]> {
+  const rows = await db.getAllAsync<TagRow & { note_count: number }>(
+    `SELECT tags.*, COUNT(notes.id) AS note_count FROM tags
+     INNER JOIN note_tags ON note_tags.tag_id = tags.id
+     INNER JOIN notes ON notes.id = note_tags.note_id AND notes.is_trashed = 0 AND notes.is_archived = 0
+     GROUP BY tags.id
+     ORDER BY note_count DESC, tags.name COLLATE NOCASE ASC`,
+  );
+  return rows.map((row) => ({ ...toTag(row), noteCount: row.note_count }));
 }

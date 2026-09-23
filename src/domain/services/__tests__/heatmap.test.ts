@@ -1,4 +1,25 @@
-import { buildCalendarColumns, formatShortDate, monthLabelsFor, relativeLevel } from '../heatmap';
+import { buildCalendarColumns, buildRangeColumns, formatShortDate, monthLabelsFor, relativeLevel } from '../heatmap';
+
+describe('buildRangeColumns', () => {
+  it('covers a past year in Monday-start weeks, hiding the padding days', () => {
+    // 2025-01-01 is a Wednesday; 2025-12-31 is a Wednesday too.
+    const columns = buildRangeColumns('2025-01-01', '2025-12-31', '2026-09-22');
+    expect(columns).toHaveLength(53);
+    expect(columns[0][0]).toMatchObject({ date: '2024-12-30', isOutside: true });
+    expect(columns[0][2]).toMatchObject({ date: '2025-01-01', isOutside: false, isFuture: false });
+    expect(columns[52][2]).toMatchObject({ date: '2025-12-31', isFuture: false });
+    expect(columns[52][3]).toMatchObject({ date: '2026-01-01', isFuture: true });
+    expect(monthLabelsFor(columns)[0].label).toBe('Jan');
+  });
+
+  it('stops the current year at the week holding today', () => {
+    const columns = buildRangeColumns('2026-01-01', '2026-12-31', '2026-09-23');
+    const last = columns[columns.length - 1];
+    expect(last[0].date).toBe('2026-09-21');
+    expect(last.find((cell) => cell.isToday)?.date).toBe('2026-09-23');
+    expect(last.filter((cell) => cell.isFuture)).toHaveLength(4);
+  });
+});
 
 describe('buildCalendarColumns', () => {
   it('builds Monday-start weeks ending with the week containing today', () => {

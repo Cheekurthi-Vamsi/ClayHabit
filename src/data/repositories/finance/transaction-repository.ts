@@ -442,17 +442,18 @@ export async function listFiltered(db: SQLiteDatabase, filter: TransactionFilter
   return rows.map(toView);
 }
 
-/** Totals per type for each calendar month from `fromMonthStart` (`YYYY-MM-DD`) on. */
+/** Totals per type for each calendar month from `fromMonthStart` (`YYYY-MM-DD`) on, optionally up to `toDay`. */
 export async function monthlyTotalsSince(
   db: SQLiteDatabase,
   fromMonthStart: string,
+  toDay?: string,
 ): Promise<Record<string, TypeTotals>> {
   const rows = await db.getAllAsync<{ month: string; type: string; total: number }>(
     `SELECT substr(occurred_on, 1, 7) AS month, type, SUM(amount_minor) AS total
      FROM fin_transactions
-     WHERE deleted_at IS NULL AND occurred_on >= ?
+     WHERE deleted_at IS NULL AND occurred_on >= ? ${toDay ? 'AND occurred_on <= ?' : ''}
      GROUP BY month, type`,
-    fromMonthStart,
+    ...(toDay ? [fromMonthStart, toDay] : [fromMonthStart]),
   );
   const byMonth: Record<string, TypeTotals> = {};
   for (const row of rows) {
@@ -476,4 +477,75 @@ export async function largestExpenseBetween(
     to,
   );
   return row ? toView(row) : null;
+}
+
+/** The first and last local days with a record, or nulls when nothing is recorded yet. */
+export async function dateBounds(db: SQLiteDatabase): Promise<{ first: string | null; last: string | null }> {
+  const row = await db.getFirstAsync<{ first: string | null; last: string | null }>(
+    'SELECT MIN(occurred_on) AS first, MAX(occurred_on) AS last FROM fin_transactions WHERE deleted_at IS NULL',
+  );
+  return { first: row?.first ?? null, last: row?.last ?? null };
+}
+
+/** How many records fall on local days [from, to]. */
+export async function countBetween(db: SQLiteDatabase, from: string, to: string): Promise<number> {
+  const row = await db.getFirstAsync<{ total: number }>(
+    'SELECT COUNT(*) AS total FROM fin_transactions WHERE deleted_at IS NULL AND occurred_on >= ? AND occurred_on <= ?',
+    from,
+    to,
+  );
+  return row?.total ?? 0;
+}
+
+/** Days in [from, to] with at least one expense. */
+export async function spendingDaysBetween(db: SQLiteDatabase, from: string, to: string): Promise<number> {
+  const row = await db.getFirstAsync<{ total: number }>(
+    `SELECT COUNT(DISTINCT occurred_on) AS total FROM fin_transactions
+     WHERE deleted_at IS NULL AND type = 'expense' AND occurred_on >= ? AND occurred_on <= ?`,
+    from,
+    to,
+  );
+  return row?.total ?? 0;
+}
+
+/** Total spending per weekday over [from, to], indexed like strftime('%w'): 0 = Sunday. */
+export async function weekdayExpenseTotalsBetween(db: SQLiteDatabase, from: string, to: string): Promise<number[]> {
+  const rows = await db.getAllAsync<{ weekday: string; total: number }>(
+    `SELECT strftime('%w', occurred_on) AS weekday, SUM(amount_minor) AS total FROM fin_transactions
+     WHERE deleted_at IS NULL AND type = 'expense' AND occurred_on >= ? AND occurred_on <= ?
+     GROUP BY weekday`,
+    from,
+    to,
+  );
+  const totals = [0, 0, 0, 0, 0, 0, 0];
+  for (const row of rows) {
+    const weekday = Number(row.weekday);
+    if (weekday >= 0 && weekday <= 6) totals[weekday] = row.total ?? 0;
+  }
+  return totals;
+}
+
+/** Spending per payment method over [from, to]; `method` is null for payments recorded without one. */
+export async function paymentMethodTotalsBetween(
+  db: SQLiteDatabase,
+  from: string,
+  to: string,
+): Promise<{ method: PaymentMethod | null; totalMinor: number; count: number }[]> {
+  const rows = await db.getAllAsync<{ method: string | null; total: number; count: number }>(
+    `SELECT payment_method AS method, SUM(amount_minor) AS total, COUNT(*) AS count FROM fin_transactions
+     WHERE deleted_at IS NULL AND type = 'expense' AND occurred_on >= ? AND occurred_on <= ?
+     GROUP BY payment_method`,
+    from,
+    to,
+  );
+  // An unrecognised stored value counts as "not set" rather than disappearing from the totals.
+  const merged = new Map<PaymentMethod | null, { totalMinor: number; count: number }>();
+  for (const row of rows) {
+    const method = isPaymentMethod(row.method) ? row.method : null;
+    const entry = merged.get(method) ?? { totalMinor: 0, count: 0 };
+    entry.totalMinor += row.total ?? 0;
+    entry.count += row.count ?? 0;
+    merged.set(method, entry);
+  }
+  return [...merged].map(([method, entry]) => ({ method, ...entry }));
 }

@@ -17,7 +17,7 @@ import {
   Stagger,
   Text,
 } from '@/components/ui';
-import type { Note } from '@/domain/entities/note';
+import type { NoteSummary } from '@/domain/entities/note';
 import type { Task } from '@/domain/entities/task';
 import { isScheduledOn } from '@/domain/services/habit-engine';
 import { useAppTheme } from '@/theme';
@@ -39,6 +39,7 @@ import { ProductivityCard } from './productivity-card';
 import { currentTimeHHmm, pickNextUp } from './progress';
 import { QuickNoteCard } from './quick-note-card';
 import { StreakCard } from './streak-card';
+import { WelcomeBanner } from './welcome-banner';
 
 const MAX_TASKS = 5;
 const MAX_HABITS = 3;
@@ -71,7 +72,7 @@ export function DashboardScreen() {
         Number(isScheduledOn(b.daysOfWeek, today)) - Number(isScheduledOn(a.daysOfWeek, today)),
     )
     .slice(0, MAX_HABITS);
-  const latestNote = (notes ?? []).reduce<Note | null>(
+  const latestNote = (notes ?? []).reduce<NoteSummary | null>(
     (latest, note) => (!latest || note.updatedAt > latest.updatedAt ? note : latest),
     null,
   );
@@ -104,6 +105,7 @@ export function DashboardScreen() {
         <Stagger index={0} style={styles.top}>
           <EnvironmentSwitcher current="productivity" />
           <DashboardHeader />
+          <WelcomeBanner />
         </Stagger>
 
         <Stagger index={1}>

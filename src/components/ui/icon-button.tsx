@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { Pressable, StyleSheet } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { usePressScale } from '@/hooks/use-press-scale';
 import { useAppTheme } from '@/theme';
@@ -30,21 +30,45 @@ export function IconButton({
   disabled = false,
 }: IconButtonProps) {
   const theme = useAppTheme();
-  const { animatedStyle, onPressIn, onPressOut } = usePressScale({ scaleTo: 0.92 });
+  const { animatedStyle, onPressIn, onPressOut } = usePressScale({ scaleTo: 0.9 });
+  const pressed = useSharedValue(0);
+  const overlayStyle = useAnimatedStyle(() => ({ opacity: pressed.value }));
 
   const handlePressIn = () => {
     if (disabled) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPressIn();
+    pressed.value = withTiming(1, { duration: 90 });
+  };
+
+  const handlePressOut = () => {
+    onPressOut();
+    pressed.value = withTiming(0, { duration: 200 });
   };
 
   const iconColor = variant === 'filled' ? theme.colors.onPrimary : theme.colors.textPrimary;
+
+  // Behind the icon on plain buttons (the tint is opaque); over the gradient on filled ones.
+  const overlay = (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          borderRadius: size / 2,
+          backgroundColor:
+            variant === 'filled' ? 'rgba(255,255,255,0.2)' : theme.colors.surfacePressed,
+        },
+        overlayStyle,
+      ]}
+    />
+  );
 
   return (
     <AnimatedPressable
       onPress={disabled ? undefined : onPress}
       onPressIn={handlePressIn}
-      onPressOut={onPressOut}
+      onPressOut={handlePressOut}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
@@ -61,6 +85,7 @@ export function IconButton({
         animatedStyle,
       ]}
     >
+      {variant === 'filled' ? null : overlay}
       {variant === 'filled' ? (
         <LinearGradient
           colors={theme.gradients.primary}
@@ -69,6 +94,7 @@ export function IconButton({
           style={[styles.fill, { borderRadius: size / 2 }]}
         >
           <Icon name={name} size={size * 0.45} color={iconColor} />
+          {overlay}
         </LinearGradient>
       ) : (
         <Icon name={name} size={size * 0.45} color={iconColor} />

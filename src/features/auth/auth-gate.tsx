@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth, useUser } from '@clerk/expo';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { DATABASE_NAME } from '@/data/db/migrate';
 import { getLastUser, rememberLastUser, resolveDatabaseForUser } from '@/lib/auth/account-database';
+import { clerkStorageModeRemote, StorageModeRemoteContext } from '@/lib/auth/clerk-storage-mode';
 import { authEnabled } from '@/lib/auth/config';
+import { clerkKeyEscrow, KeyEscrowContext } from '@/lib/cloud/clerk-escrow';
 import { queryClient } from '@/lib/query-client';
 import { useAppTheme } from '@/theme';
 
@@ -31,6 +33,9 @@ function ClerkGate({ children }: { children: RenderApp }) {
   const [timedOut, setTimedOut] = useState(false);
   const [lastUser, setLastUser] = useState<string | null | undefined>(undefined);
   const [database, setDatabase] = useState<{ userId: string; name: string } | null>(null);
+  // The Cloud key is kept with the account, so the Cloud can find it on any phone.
+  const escrow = useMemo(() => (user ? clerkKeyEscrow(user) : null), [user]);
+  const storageRemote = useMemo(() => (user ? clerkStorageModeRemote(user) : null), [user]);
 
   useEffect(() => {
     getLastUser().then(setLastUser, () => setLastUser(null));
@@ -88,7 +93,9 @@ function ClerkGate({ children }: { children: RenderApp }) {
         offline,
       }}
     >
-      {children(database.name)}
+      <KeyEscrowContext.Provider value={escrow}>
+        <StorageModeRemoteContext.Provider value={storageRemote}>{children(database.name)}</StorageModeRemoteContext.Provider>
+      </KeyEscrowContext.Provider>
     </AccountContext.Provider>
   );
 }
