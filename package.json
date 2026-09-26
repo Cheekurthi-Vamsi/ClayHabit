@@ -67,6 +67,7 @@
     "android:apk": "node scripts/build-android.mjs apk",
     "android:aab": "node scripts/build-android.mjs aab",
     "release:android": "node scripts/release-android.mjs",
+    "publish:android": "node scripts/publish-github-release.mjs",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
