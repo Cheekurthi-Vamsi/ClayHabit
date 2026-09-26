@@ -31,6 +31,8 @@
   justify-self: center;
 }
 .site-nav__actions {
+  /* Always the right-hand column, even on pages without the centre links. */
+  grid-column: -2;
   justify-self: end;
   display: flex;
   align-items: center;

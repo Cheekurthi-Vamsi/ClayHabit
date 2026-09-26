@@ -5,7 +5,10 @@
 **Your habits, tasks, notes, calendar, focus and money, in one calm place.**
 On your Android phone and on the web, encrypted, and kept in your own Google Drive.
 
-> ### :: APPLICATION COMPLETED ABOUT TO DEPLOY STAY TUNED ::
+[![Download for Android](https://img.shields.io/github/v/release/Cheekurthi-Vamsi/ClayHabit?label=Android&logo=android&color=CFF400&labelColor=001D39&style=for-the-badge)](https://github.com/Cheekurthi-Vamsi/ClayHabit/releases/latest/download/ClayHabbit.apk)
+[![Open the web app](https://img.shields.io/badge/Web-clay--habbit.vercel.app-0A4174?style=for-the-badge&logo=vercel&logoColor=white)](https://clay-habbit.vercel.app)
+
+> ### Now live: ClayHabbit 1.0.1 for Android and the web
 
 [**Website**](https://clay-habbit.vercel.app) ·
 [**Web app**](https://clay-habbit.vercel.app/sign-in) ·
@@ -43,6 +46,7 @@ On your Android phone and on the web, encrypted, and kept in your own Google Dri
 | Website (landing) | https://clay-habbit.vercel.app |
 | Web app (sign in) | https://clay-habbit.vercel.app/sign-in |
 | Android app (APK download and install steps) | https://clay-habbit.vercel.app/download |
+| Latest APK (direct download) | https://github.com/Cheekurthi-Vamsi/ClayHabit/releases/latest/download/ClayHabbit.apk |
 | Android releases | https://github.com/Cheekurthi-Vamsi/ClayHabit/releases |
 | Privacy policy | https://clay-habbit.vercel.app/privacy |
 | Terms of use | https://clay-habbit.vercel.app/terms |
@@ -277,7 +281,7 @@ The schema evolves through numbered migrations in `src/data/db/migrations/`, app
 
 <div align="center">
 
-**:: APPLICATION COMPLETED ABOUT TO DEPLOY STAY TUNED ::**
+**Now live:** [Download for Android](https://clay-habbit.vercel.app/download) · [Open the web app](https://clay-habbit.vercel.app)
 
 Made with care by [Cheekurthi-Vamsi](https://github.com/Cheekurthi-Vamsi) · Small steps, big changes.
 
