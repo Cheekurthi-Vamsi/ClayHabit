@@ -3,8 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { Card, Icon, Text } from '@/components/ui';
-import { clearPin, isBiometricAvailable } from '@/lib/security/app-lock-service';
-import { useAppLockStore } from '@/store/app-lock-store';
+import { isBiometricAvailable } from '@/lib/security/app-lock-service';
 import { useSettingsStore } from '@/store/settings-store';
 import { useAppTheme } from '@/theme';
 
@@ -42,10 +41,8 @@ function SettingRow({
 export function SecuritySection() {
   const router = useRouter();
   const appLockEnabled = useSettingsStore((state) => state.appLockEnabled);
-  const setAppLockEnabled = useSettingsStore((state) => state.setAppLockEnabled);
   const biometricEnabled = useSettingsStore((state) => state.biometricEnabled);
   const setBiometricEnabled = useSettingsStore((state) => state.setBiometricEnabled);
-  const setSessionUnlocked = useAppLockStore((state) => state.setSessionUnlocked);
 
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
@@ -53,15 +50,9 @@ export function SecuritySection() {
     isBiometricAvailable().then(setBiometricAvailable);
   }, []);
 
-  const handleAppLockChange = async (enabled: boolean) => {
-    if (enabled) {
-      router.push('/security/set-pin');
-      return;
-    }
-    await clearPin();
-    setAppLockEnabled(false);
-    setBiometricEnabled(false);
-    setSessionUnlocked(true);
+  // Turning App Lock off needs the current PIN too, so it goes through the PIN flow.
+  const handleAppLockChange = (enabled: boolean) => {
+    router.push(enabled ? '/security/set-pin' : { pathname: '/security/set-pin', params: { mode: 'disable' } });
   };
 
   return (
@@ -87,6 +78,17 @@ export function SecuritySection() {
             </Text>
           </Pressable>
         )}
+        <Pressable
+          onPress={() => router.push('/security/change-passcode')}
+          accessibilityRole="button"
+          accessibilityLabel="Change data passcode"
+          accessibilityHint="The passcode that encrypts your data on this phone and in the Cloud"
+          style={styles.changePinRow}
+        >
+          <Text variant="bodyMedium" color="primary">
+            Change data passcode
+          </Text>
+        </Pressable>
       </View>
     </Card>
   );

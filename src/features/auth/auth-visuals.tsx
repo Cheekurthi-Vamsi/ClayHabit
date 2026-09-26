@@ -100,9 +100,9 @@ export function SoftBackdrop() {
 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]} pointerEvents="none">
-      <DriftingBlob color="#A99BFF" size={big} top={-big * 0.5} left={-big * 0.45} dx={24} dy={30} duration={9000} opacity={strength} />
-      <DriftingBlob color="#8CC4FF" size={big} top={height - big * 0.55} left={width - big * 0.5} dx={-26} dy={-20} duration={11000} opacity={strength} />
-      <DriftingBlob color="#9BE7D2" size={big * 0.6} top={height * 0.42} left={-big * 0.35} dx={18} dy={-24} duration={13000} opacity={strength * 0.7} />
+      <DriftingBlob color="#7BBDE8" size={big} top={-big * 0.5} left={-big * 0.45} dx={24} dy={30} duration={9000} opacity={strength} />
+      <DriftingBlob color="#BDD8E9" size={big} top={height - big * 0.55} left={width - big * 0.5} dx={-26} dy={-20} duration={11000} opacity={strength} />
+      <DriftingBlob color="#6EA2B3" size={big * 0.6} top={height * 0.42} left={-big * 0.35} dx={18} dy={-24} duration={13000} opacity={strength * 0.7} />
       <View style={[styles.dot, { top: height * 0.26, right: 22, width: 36, height: 36, backgroundColor: theme.colors.primaryMuted }]} />
       <View style={[styles.dot, { top: height * 0.34, left: 18, width: 46, height: 46, backgroundColor: theme.colors.secondaryMuted }]} />
     </View>
@@ -185,7 +185,7 @@ export function WelcomeIllustration({ maxHeight }: { maxHeight: number }) {
 /** Google's "G" mark, drawn locally (brand asset, used as Google's sign-in guidelines allow). */
 export function GoogleMark({ size = 20 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 48 48" accessible={false}>
+    <Svg width={size} height={size} viewBox="0 0 48 48">
       <Path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
       <Path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
       <Path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
@@ -195,8 +195,8 @@ export function GoogleMark({ size = 20 }: { size?: number }) {
 }
 
 /**
- * "Continue with Google" as the screen's hero button: a violet → blue cartoon
- * pill with Google's G on a white disc (as Google's branding asks) and an arrow.
+ * "Continue with Google" as the screen's hero button: a lime cartoon pill with
+ * Google's G on a white disc (as Google's branding asks) and an arrow.
  */
 export function GoogleButton({
   label = 'Continue with Google',
@@ -219,17 +219,17 @@ export function GoogleButton({
       disabled={inactive}
       haptic="medium"
       radius={theme.radii.full}
-      fill={theme.gradients.aurora}
+      fill={theme.colors.highlight}
       style={styles.stretch}
       faceStyle={styles.googleFace}
       accessibilityLabel={label}
       accessibilityState={{ busy }}
     >
       <View style={styles.gDisc}>{busy ? <ActivityIndicator color={theme.colors.primary} /> : <GoogleMark />}</View>
-      <Text style={styles.googleLabel} accessible={false} numberOfLines={1}>
+      <Text style={[styles.googleLabel, { color: theme.colors.onHighlight }]} accessible={false} numberOfLines={1}>
         {busy ? busyLabel : label}
       </Text>
-      <Icon name="arrow-right" size={20} color="#FFFFFF" />
+      <Icon name="arrow-right" size={20} color={theme.colors.onHighlight} />
     </CartoonPress>
   );
 }
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   logoShadow: {
-    shadowColor: '#4B3FD1',
+    shadowColor: '#0A4174',
     shadowOpacity: 0.28,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -316,7 +316,6 @@ const styles = StyleSheet.create({
   },
   googleLabel: {
     flex: 1,
-    color: '#FFFFFF',
     fontFamily: fontFamily.bold,
     fontSize: 17,
     lineHeight: 22,

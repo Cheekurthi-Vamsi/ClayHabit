@@ -7,7 +7,7 @@ import { useAppTheme } from '@/theme';
 
 import { useCreateFolder, useDeleteFolder, useUpdateFolder } from '../hooks';
 
-export const FOLDER_COLORS = ['#6F57F2', '#3A74E6', '#1792C4', '#1FA985', '#E08A12', '#E47A40', '#DC5F84', '#4A5068'];
+export const FOLDER_COLORS = ['#0A4174', '#49769F', '#4E8EA2', '#6EA2B3', '#3C84B5', '#7BBDE8', '#6A8A1E', '#3A3C40'];
 export const FOLDER_ICONS: IconName[] = ['folder', 'briefcase', 'book', 'code', 'shield', 'sun', 'heart', 'star', 'feather', 'coffee'];
 
 interface FolderEditorSheetProps {

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import * as Clipboard from 'expo-clipboard';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Icon, Text } from '@/components/ui';
@@ -28,13 +27,12 @@ const STATUS_LABEL: Record<CloudStatus, string> = {
   conflict: 'Needs your choice',
 };
 
-/** Cloud (Google Drive): connection, sync, the backup key, and how the data is protected. */
+/** Cloud (Google Drive): connection, sync, and how the data is protected. */
 export function CloudSettingsSection() {
   const theme = useAppTheme();
   const cloud = useCloud();
   const autoSync = useSettingsStore((state) => state.cloudAutoSync);
   const setAutoSync = useSettingsStore((state) => state.setCloudAutoSync);
-  const [revealed, setRevealed] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
 
   if (cloud.unavailableReason === 'device-only') {
@@ -103,27 +101,28 @@ export function CloudSettingsSection() {
 
   const tone =
     cloud.status === 'synced'
-      ? { color: theme.colors.success, muted: theme.colors.successMuted, icon: 'check-circle' as const }
+      ? {
+          color: theme.colors.success,
+          muted: theme.colors.successMuted,
+          icon: 'check-circle' as const,
+        }
       : cloud.status === 'syncing'
-        ? { color: theme.colors.primary, muted: theme.colors.primaryMuted, icon: 'refresh-cw' as const }
+        ? {
+            color: theme.colors.primary,
+            muted: theme.colors.primaryMuted,
+            icon: 'refresh-cw' as const,
+          }
         : cloud.status === 'offline'
-          ? { color: theme.colors.warning, muted: theme.colors.warningMuted, icon: 'wifi-off' as const }
-          : { color: theme.colors.error, muted: theme.colors.errorMuted, icon: 'alert-triangle' as const };
-
-  const reveal = async () => {
-    if (revealed) {
-      setRevealed(null);
-      return;
-    }
-    Alert.alert(
-      'Show backup key?',
-      'Anyone with this key and access to your Google Drive can read your ClayHabbit data. Keep it somewhere private, like a password manager.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Show key', onPress: async () => setRevealed(await cloud.revealBackupKey()) },
-      ],
-    );
-  };
+          ? {
+              color: theme.colors.warning,
+              muted: theme.colors.warningMuted,
+              icon: 'wifi-off' as const,
+            }
+          : {
+              color: theme.colors.error,
+              muted: theme.colors.errorMuted,
+              icon: 'alert-triangle' as const,
+            };
 
   const switchAccount = () =>
     Alert.alert(
@@ -140,7 +139,11 @@ export function CloudSettingsSection() {
       <View style={styles.stack}>
         <View style={styles.row}>
           {cloud.account ? (
-            <Avatar name={cloud.account.name ?? cloud.account.email} imageUrl={cloud.account.photo} size={44} />
+            <Avatar
+              name={cloud.account.name ?? cloud.account.email}
+              imageUrl={cloud.account.photo}
+              size={44}
+            />
           ) : (
             <View style={[styles.badge, { backgroundColor: theme.colors.primaryMuted }]}>
               <Icon name="cloud" size={18} color={theme.colors.primary} />
@@ -154,7 +157,9 @@ export function CloudSettingsSection() {
           </View>
         </View>
 
-        <View style={[styles.status, { backgroundColor: tone.muted, borderRadius: theme.radii.md }]}>
+        <View
+          style={[styles.status, { backgroundColor: tone.muted, borderRadius: theme.radii.md }]}
+        >
           <Icon name={tone.icon} size={16} color={tone.color} />
           <View style={styles.flex}>
             <Text variant="labelLarge">{STATUS_LABEL[cloud.status]}</Text>
@@ -170,19 +175,32 @@ export function CloudSettingsSection() {
           <View style={styles.stackTight}>
             <Text variant="bodySmall" color="textSecondary">
               This phone and your Cloud were both changed
-              {cloud.conflict?.device ? ` (the Cloud copy came from ${cloud.conflict.device})` : ''}. Pick the version to
-              keep; the other is replaced.
+              {cloud.conflict?.device ? ` (the Cloud copy came from ${cloud.conflict.device})` : ''}
+              . Pick the version to keep; the other is replaced.
             </Text>
-            <Button label="Use Cloud copy" icon="download-cloud" size="sm" onPress={() => void cloud.resolveConflict('remote')} />
+            <Button
+              label="Use Cloud copy"
+              icon="download-cloud"
+              size="sm"
+              onPress={() => void cloud.resolveConflict('remote')}
+            />
             <Button
               label="Keep this phone's data"
               variant="outline"
               size="sm"
               onPress={() =>
-                Alert.alert('Replace your Cloud copy?', "The Cloud copy is replaced with this phone's data.", [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Replace', style: 'destructive', onPress: () => void cloud.resolveConflict('local') },
-                ])
+                Alert.alert(
+                  'Replace your Cloud copy?',
+                  "The Cloud copy is replaced with this phone's data.",
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Replace',
+                      style: 'destructive',
+                      onPress: () => void cloud.resolveConflict('local'),
+                    },
+                  ],
+                )
               }
             />
           </View>
@@ -201,34 +219,10 @@ export function CloudSettingsSection() {
         <SettingSwitch
           icon="zap"
           label="Sync as you go"
-          hint="Saves a few seconds after each change. Off: only when you open or leave the app."
+          hint="Saves within seconds of each change and picks up edits from the web. Off: only when you open or leave the app."
           value={autoSync}
           onValueChange={setAutoSync}
         />
-        <SettingDivider />
-        <SettingLink
-          icon="key"
-          label={revealed ? 'Hide backup key' : 'Show backup key'}
-          hint="Your key is kept with your account. This copy is a spare, in case you ever need it."
-          onPress={reveal}
-        />
-        {revealed ? (
-          <View style={[styles.keyBox, { backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.radii.md }]}>
-            <Text variant="labelLarge" selectable style={styles.keyText}>
-              {revealed}
-            </Text>
-            <Button
-              label="Copy"
-              icon="copy"
-              variant="ghost"
-              size="sm"
-              onPress={async () => {
-                await Clipboard.setStringAsync(revealed);
-                Alert.alert('Copied', 'Paste it somewhere private, then clear your clipboard.');
-              }}
-            />
-          </View>
-        ) : null}
         <SettingDivider />
         <SettingLink icon="repeat" label="Switch Google account" onPress={switchAccount} />
         <SettingDivider />
@@ -242,17 +236,24 @@ export function CloudSettingsSection() {
               "ClayHabbit saves one last time, then stops syncing and gives back its Google Drive permission. The encrypted copy already in your Drive isn't deleted.",
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Stop backup', style: 'destructive', onPress: () => void cloud.setStorageMode('device') },
+                {
+                  text: 'Stop backup',
+                  style: 'destructive',
+                  onPress: () => void cloud.setStorageMode('device'),
+                },
               ],
             )
           }
         />
 
-        <View style={[styles.info, { borderColor: theme.colors.border, borderRadius: theme.radii.md }]}>
+        <View
+          style={[styles.info, { borderColor: theme.colors.border, borderRadius: theme.radii.md }]}
+        >
           <Icon name="shield" size={14} color={theme.colors.textSecondary} />
           <Text variant="caption" color="textSecondary" style={styles.flex}>
-            Encrypted on this phone with AES-256-GCM before upload, checked with SHA-256 on the way back. Stored in
-            your Drive&apos;s private app folder, which only ClayHabbit can open.
+            Encrypted on this phone with AES-256-GCM under a key only your data passcode unlocks,
+            checked with SHA-256 on the way back. Stored in your Drive&apos;s private app folder.
+            Neither Google nor Clerk can read it.
           </Text>
         </View>
       </View>
@@ -287,13 +288,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 12,
-  },
-  keyBox: {
-    padding: 12,
-    gap: 6,
-  },
-  keyText: {
-    letterSpacing: 0.5,
   },
   info: {
     flexDirection: 'row',

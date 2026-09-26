@@ -18,7 +18,7 @@ export function CurvedDock({ depth = 0.12 }: { depth?: number }) {
       preserveAspectRatio="none"
       pointerEvents="none"
     >
-      <Path d={DOCK_PATH} fill="#0B0826" fillOpacity={depth} />
+      <Path d={DOCK_PATH} fill="#001D39" fillOpacity={depth} />
       <Path
         d={DOCK_EDGE}
         fill="none"

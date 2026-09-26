@@ -24,9 +24,6 @@ export default function FinanceLayout() {
           <FloatingDock
             {...props}
             tabs={FINANCE_TABS}
-            accentGradient={theme.gradients.finance}
-            accentColor={theme.colors.financeText}
-            createGradient={theme.gradients.finance}
             createHint="Opens options to add an expense, income, savings, budget or goal"
             createOpen={addOpen}
             onCreate={() => setAddOpen(true)}

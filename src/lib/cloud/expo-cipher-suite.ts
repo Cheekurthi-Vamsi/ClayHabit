@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 
-import { bytesToHex } from './encoding';
+import { base64ToBytes, bytesToHex } from './encoding';
 import type { CipherSuite } from './envelope';
 
 /** The envelope's primitives on the phone: native SHA-256 and AES-256-GCM from expo-crypto. */
@@ -16,7 +16,9 @@ export const expoCipherSuite: CipherSuite = {
   },
   async open(sealedBase64, keyBytes, aad) {
     const key = await Crypto.AESEncryptionKey.import(keyBytes);
-    const sealed = Crypto.AESSealedData.fromCombined(sealedBase64);
+    // Bytes, not the base64 string: Android's native fromCombined only accepts a
+    // ByteArray (iOS takes either), so a string failed there and read as "tampered".
+    const sealed = Crypto.AESSealedData.fromCombined(base64ToBytes(sealedBase64) as Uint8Array<ArrayBuffer>);
     return Crypto.aesDecryptAsync(sealed, key, { additionalData: aad });
   },
   randomBytes(count) {

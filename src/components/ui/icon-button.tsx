@@ -8,7 +8,7 @@ import { useAppTheme } from '@/theme';
 
 import { Icon, type IconName } from './icon';
 
-export type IconButtonVariant = 'filled' | 'muted' | 'ghost';
+export type IconButtonVariant = 'filled' | 'muted' | 'surface' | 'ghost';
 
 interface IconButtonProps {
   name: IconName;
@@ -46,7 +46,7 @@ export function IconButton({
     pressed.value = withTiming(0, { duration: 200 });
   };
 
-  const iconColor = variant === 'filled' ? theme.colors.onPrimary : theme.colors.textPrimary;
+  const iconColor = variant === 'filled' ? theme.colors.onHighlight : theme.colors.textPrimary;
 
   // Behind the icon on plain buttons (the tint is opaque); over the gradient on filled ones.
   const overlay = (
@@ -57,7 +57,7 @@ export function IconButton({
         {
           borderRadius: size / 2,
           backgroundColor:
-            variant === 'filled' ? 'rgba(255,255,255,0.2)' : theme.colors.surfacePressed,
+            variant === 'filled' ? 'rgba(20, 21, 18, 0.1)' : theme.colors.surfacePressed,
         },
         overlayStyle,
       ]}
@@ -80,15 +80,17 @@ export function IconButton({
           height: size,
           borderRadius: size / 2,
           opacity: disabled ? 0.5 : 1,
-          backgroundColor: variant === 'muted' ? theme.colors.surfaceMuted : undefined,
+          backgroundColor:
+            variant === 'muted' ? theme.colors.surfaceMuted : variant === 'surface' ? theme.colors.surface : undefined,
         },
+        variant === 'surface' ? { borderWidth: 1, borderColor: theme.colors.border } : null,
         animatedStyle,
       ]}
     >
       {variant === 'filled' ? null : overlay}
       {variant === 'filled' ? (
         <LinearGradient
-          colors={theme.gradients.primary}
+          colors={[theme.colors.highlight, theme.colors.highlight]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.fill, { borderRadius: size / 2 }]}

@@ -244,7 +244,7 @@ function TransactionForm({ existing, initialType }: { existing?: FinTransactionV
           label={existing ? 'Save changes' : `Add ${noun}`}
           icon="check"
           fullWidth
-          gradient={theme.gradients.finance}
+         
           disabled={amountMinor <= 0}
           loading={saving}
           onPress={submit}

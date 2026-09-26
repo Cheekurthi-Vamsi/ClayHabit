@@ -8,14 +8,15 @@ export interface HabitSwatch {
   gradient: GradientStops;
 }
 
+// Keys are stored on saved habits, so they keep their old names; the colours come from the
+// app palette. Each gradient ends deep enough for white text, and each base reads as text.
 export const habitPalette: Record<HabitColor, HabitSwatch> = {
-  purple: { base: '#6F57F2', gradient: ['#9C8CF8', '#6F57F2'] },
-  blue: { base: '#3A74E6', gradient: ['#6FA3F7', '#3A74E6'] },
-  // Kept as a key for saved habits; now a soft rose rather than hot pink.
-  pink: { base: '#DC5F84', gradient: ['#F2A3B9', '#DC5F84'] },
-  mint: { base: '#1FA985', gradient: ['#7FDCC2', '#1FA985'] },
-  amber: { base: '#E08A12', gradient: ['#F7C66B', '#E08A12'] },
-  cyan: { base: '#1792C4', gradient: ['#74CDEB', '#1792C4'] },
+  purple: { base: '#0A4174', gradient: ['#49769F', '#0A4174'] },
+  blue: { base: '#49769F', gradient: ['#6EA2B3', '#49769F'] },
+  pink: { base: '#3C84B5', gradient: ['#7BBDE8', '#3C84B5'] },
+  mint: { base: '#2F6F82', gradient: ['#4E8EA2', '#2F6F82'] },
+  amber: { base: '#6A8A1E', gradient: ['#8FAE22', '#5E7A15'] },
+  cyan: { base: '#001D39', gradient: ['#0A4174', '#001D39'] },
 };
 
 export const HABIT_COLORS = Object.keys(habitPalette) as HabitColor[];

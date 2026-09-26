@@ -1,0 +1,216 @@
+/* ClayHabbit web — base. Tokens come from the phone's src/theme via `virtual:tokens.css`. */
+
+/*
+ * Display serif: Copernicus when it's installed on this computer (it's a licensed
+ * typeface, so it isn't shipped with the site), otherwise Times New Roman, which every
+ * desktop has. Both are local fonts: they never download late, so nothing re-flows.
+ */
+@font-face {
+  font-family: 'Copernicus';
+  src: local('Copernicus'), local('Copernicus Book'), local('Copernicus-Book'), local('Copernicus Medium'),
+    local('Copernicus-Medium');
+  font-display: optional;
+}
+
+:root {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* The phone's pair: Manrope for the interface, Source Serif 4 for long reading (Notes). */
+  --font-serif: 'Copernicus', 'Source Serif 4', 'Times New Roman', Georgia, serif;
+  /* Headlines (landing, dashboard, notes): the editorial serif. */
+  --font-display: 'Copernicus', 'Times New Roman', Times, 'Source Serif 4', serif;
+  /* The cartoon ink: navy outlines and hard shadows in light, near-black in dark (useInk). */
+  --ink: var(--color-text-primary);
+  --depth: 4px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --page-max: 1200px;
+  --gutter: clamp(16px, 4vw, 40px);
+}
+
+:root[data-theme='dark'] {
+  --ink: #050607;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  /* The scrollbar's width is always reserved, so pages of different lengths never shift sideways. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+::selection {
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Type scale (src/theme/typography.ts) ------------------------------------------------ */
+
+.t-display-lg,
+.t-display-md,
+.t-headline-lg,
+.t-headline-md,
+.t-title-lg,
+.t-title-md,
+.t-body-lg,
+.t-body-md,
+.t-body-sm,
+.t-label-lg,
+.t-label-md,
+.t-caption {
+  margin: 0;
+}
+.t-display-lg { font-weight: 800; font-size: var(--type-display-large-size); line-height: var(--type-display-large-line); letter-spacing: var(--type-display-large-tracking); }
+.t-display-md { font-weight: 800; font-size: var(--type-display-medium-size); line-height: var(--type-display-medium-line); letter-spacing: var(--type-display-medium-tracking); }
+.t-headline-lg { font-weight: 700; font-size: var(--type-headline-large-size); line-height: var(--type-headline-large-line); letter-spacing: var(--type-headline-large-tracking); }
+.t-headline-md { font-weight: 700; font-size: var(--type-headline-medium-size); line-height: var(--type-headline-medium-line); letter-spacing: var(--type-headline-medium-tracking); }
+.t-title-lg { font-weight: 700; font-size: var(--type-title-large-size); line-height: var(--type-title-large-line); letter-spacing: var(--type-title-large-tracking); }
+.t-title-md { font-weight: 600; font-size: var(--type-title-medium-size); line-height: var(--type-title-medium-line); }
+.t-body-lg { font-weight: 400; font-size: var(--type-body-large-size); line-height: var(--type-body-large-line); }
+.t-body-md { font-weight: 400; font-size: var(--type-body-medium-size); line-height: var(--type-body-medium-line); }
+.t-body-sm { font-weight: 400; font-size: var(--type-body-small-size); line-height: var(--type-body-small-line); letter-spacing: var(--type-body-small-tracking); }
+.t-label-lg { font-weight: 600; font-size: var(--type-label-large-size); line-height: var(--type-label-large-line); letter-spacing: var(--type-label-large-tracking); }
+.t-label-md { font-weight: 600; font-size: var(--type-label-medium-size); line-height: var(--type-label-medium-line); letter-spacing: var(--type-label-medium-tracking); }
+.t-caption { font-weight: 500; font-size: var(--type-caption-size); line-height: var(--type-caption-line); letter-spacing: var(--type-caption-tracking); }
+
+.serif {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.serif em,
+em.serif {
+  font-style: italic;
+}
+
+.c-secondary { color: var(--color-text-secondary); }
+.c-tertiary { color: var(--color-text-tertiary); }
+.c-primary { color: var(--color-primary); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---- Motion: transform/opacity only, never layout ----------------------------------------- */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
+}
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(var(--dx, 24px), var(--dy, 18px), 0) scale(1.06); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes shine {
+  from { transform: translateX(-160%) rotate(14deg); }
+  to { transform: translateX(260%) rotate(14deg); }
+}
+
+/* Elements revealed on scroll keep their box from the start; only their look changes. */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+  transition-delay: var(--delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

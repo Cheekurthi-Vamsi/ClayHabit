@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#F1F5F8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0E1012" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="ClayHabbit: habits, tasks, notes, calendar and money in one calm place. Encrypted on your devices, kept in your own Google Drive."
+    />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>ClayHabbit</title>
+    <script>
+      // Theme before first paint, so nothing flashes or reflows when React starts.
+      (function () {
+        try {
+          var saved = localStorage.getItem('clayhabit.theme');
+          var dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

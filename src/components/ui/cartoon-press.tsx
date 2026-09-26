@@ -14,7 +14,7 @@ const SHINE_WIDTH = 64;
 /** The ink used for outlines and the offset shadow (navy in light mode, near-black in dark). */
 export function useInk(): string {
   const theme = useAppTheme();
-  return theme.scheme === 'dark' ? '#04050C' : theme.colors.textPrimary;
+  return theme.scheme === 'dark' ? '#050607' : theme.colors.textPrimary;
 }
 
 interface CartoonPressProps {

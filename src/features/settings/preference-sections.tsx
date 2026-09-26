@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { Card, Icon, Text } from '@/components/ui';
+import { Button, Card, Icon, Text } from '@/components/ui';
 import * as dataRepository from '@/data/repositories/data-repository';
 import { useCloud } from '@/features/cloud/cloud-context';
+import { offerUpdate } from '@/features/updates/update-prompt';
 import { cancelAllReminders } from '@/lib/notifications/notification-service';
+import { checkForUpdate } from '@/lib/updates/update-check';
 import {
   FOCUS_LENGTHS,
   useSettingsStore,
@@ -23,6 +26,8 @@ export function FeelSection() {
   const setReduceMotion = useSettingsStore((state) => state.setReduceMotion);
   const haptics = useSettingsStore((state) => state.hapticsEnabled);
   const setHaptics = useSettingsStore((state) => state.setHapticsEnabled);
+  const use24Hour = useSettingsStore((state) => state.use24HourClock);
+  const setUse24Hour = useSettingsStore((state) => state.setUse24HourClock);
 
   return (
     <Card>
@@ -40,6 +45,14 @@ export function FeelSection() {
         hint="A light tap when you check things off, switch tabs or scrub charts."
         value={haptics}
         onValueChange={setHaptics}
+      />
+      <SettingDivider />
+      <SettingSwitch
+        icon="clock"
+        label="24-hour time"
+        hint="Show and type times like 21:30 instead of 9:30 PM. Reminders can be set to any minute either way."
+        value={use24Hour}
+        onValueChange={setUse24Hour}
       />
     </Card>
   );
@@ -222,6 +235,20 @@ export function AboutSection() {
   const theme = useAppTheme();
   const cloud = useCloud();
   const version = Constants.expoConfig?.version ?? '1.0.0';
+  const [checking, setChecking] = useState(false);
+
+  const checkNow = async () => {
+    setChecking(true);
+    try {
+      const update = await checkForUpdate({ force: true });
+      if (update) offerUpdate(update);
+      else Alert.alert('You’re up to date', `ClayHabbit ${version} is the newest version.`);
+    } catch {
+      Alert.alert('Couldn’t check for updates', 'Check your connection and try again.');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const rows: { label: string; value: string }[] = [
     { label: 'Version', value: version },
@@ -254,6 +281,15 @@ export function AboutSection() {
           <Text variant="labelLarge">{row.value}</Text>
         </View>
       ))}
+      <Button
+        label={checking ? 'Checking…' : 'Check for updates'}
+        icon="download"
+        variant="outline"
+        size="sm"
+        fullWidth
+        loading={checking}
+        onPress={() => void checkNow()}
+      />
     </Card>
   );
 }

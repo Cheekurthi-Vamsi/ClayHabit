@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { NOTE_PAPERS, type NotePaper } from '@/domain/entities/note';
+import { setClockPreferenceSource } from '@/utils/date';
 
 export type { NotePaper };
 
@@ -61,6 +62,12 @@ interface SettingsState {
   /** Sync to the Cloud a few seconds after each change, not only on open, close and "Sync now". */
   cloudAutoSync: boolean;
   setCloudAutoSync: (enabled: boolean) => void;
+  /** Times read and are typed as 24-hour ("21:30") instead of "9:30 PM". */
+  use24HourClock: boolean;
+  setUse24HourClock: (enabled: boolean) => void;
+  /** The Get Started intro shows once per install, before the first sign-in. */
+  hasSeenGetStarted: boolean;
+  setHasSeenGetStarted: (seen: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -101,6 +108,10 @@ export const useSettingsStore = create<SettingsState>()(
       setNotesSort: (sort) => set({ notesSort: sort }),
       cloudAutoSync: true,
       setCloudAutoSync: (enabled) => set({ cloudAutoSync: enabled }),
+      use24HourClock: false,
+      setUse24HourClock: (enabled) => set({ use24HourClock: enabled }),
+      hasSeenGetStarted: false,
+      setHasSeenGetStarted: (seen) => set({ hasSeenGetStarted: seen }),
     }),
     {
       name: 'clayhabit.settings',
@@ -108,6 +119,8 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
+
+setClockPreferenceSource(() => useSettingsStore.getState().use24HourClock);
 
 /**
  * `persist` rehydrates from AsyncStorage asynchronously, so a value like
@@ -148,6 +161,7 @@ type SyncedSettings = Pick<
   | 'notesViewMode'
   | 'notesSort'
   | 'cloudAutoSync'
+  | 'use24HourClock'
 >;
 
 const SYNCED_VALIDATORS: { [K in keyof SyncedSettings]: (value: unknown) => boolean } = {
@@ -166,6 +180,7 @@ const SYNCED_VALIDATORS: { [K in keyof SyncedSettings]: (value: unknown) => bool
   notesViewMode: (value) => value === 'grid' || value === 'list',
   notesSort: (value) => (NOTES_SORTS as readonly unknown[]).includes(value),
   cloudAutoSync: (value) => typeof value === 'boolean',
+  use24HourClock: (value) => typeof value === 'boolean',
 };
 
 export function pickSyncedSettings(state: SettingsState = useSettingsStore.getState()): Record<string, unknown> {

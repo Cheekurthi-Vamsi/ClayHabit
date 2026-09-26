@@ -54,7 +54,11 @@ export function toCloudError(error: unknown): CloudError {
   return new CloudError('unknown', error instanceof Error ? error.message : undefined);
 }
 
-/** The message to show, without the technical detail. */
+// Failures nobody can act on without knowing what went wrong underneath.
+const SHOW_DETAIL: ReadonlySet<CloudErrorCode> = new Set(['tampered', 'corrupt', 'unknown']);
+
+/** The message to show; the technical detail only where it's the one clue to the cause. */
 export function cloudErrorMessage(error: unknown): string {
-  return MESSAGES[toCloudError(error).code];
+  const cloudError = toCloudError(error);
+  return SHOW_DETAIL.has(cloudError.code) ? cloudError.message : MESSAGES[cloudError.code];
 }

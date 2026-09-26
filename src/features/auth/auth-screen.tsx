@@ -2,23 +2,29 @@ import { useEffect, useState } from 'react';
 import * as Haptics from '@/lib/haptics';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
+import { Image } from 'expo-image';
 import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon, Text } from '@/components/ui';
+import { Icon, Text, ThemeToggle } from '@/components/ui';
 import { authErrorMessage } from '@/lib/auth/auth-errors';
 import { useSessionStore } from '@/store/session-store';
 import { useAppTheme } from '@/theme';
 
-import { FloatingLogo, GoogleButton, Rise, SoftBackdrop, TrustChip, WelcomeIllustration, Wordmark } from './auth-visuals';
+import { GoogleButton, Rise, TrustChip, Wordmark } from './auth-visuals';
 import { GoogleAuthError, useGoogleAuth } from './use-google-auth';
+
+/** images/auth light.jpg and auth dark.jpg: the "best algorithm ever written is book" art. */
+const ART_LIGHT = require('../../../assets/images/onboarding/auth-light.jpg');
+const ART_DARK = require('../../../assets/images/onboarding/auth-dark.jpg');
 
 // Completes a pending browser sign-in when the app is reopened from the redirect (browser fallback, and web).
 WebBrowser.maybeCompleteAuthSession();
 
 /**
- * The welcome screen, and the only way in: Continue with Google. There are
+ * The sign-in screen, and the only way in: Continue with Google. The quote art
+ * fills the page (light or dark with the theme, switchable with the sun/moon toggle). There are
  * no ClayHabbit passwords — Google proves who you are, Clerk keeps the
  * session, and the next screen asks where your data should live.
  */
@@ -57,45 +63,51 @@ export function AuthScreen() {
     }
   };
 
-  const compact = height < 720;
+  const dark = theme.scheme === 'dark';
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
-      <SoftBackdrop />
+    <View style={[styles.screen, { backgroundColor: dark ? '#000000' : '#FBFCFE' }]}>
+      <StatusBar style={dark ? 'light' : 'dark'} />
+      <Image
+        source={dark ? ART_DARK : ART_LIGHT}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        contentPosition="top"
+        transition={250}
+        accessibilityLabel="The best algorithm ever written is a book."
+      />
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + (compact ? 16 : 36), paddingBottom: insets.bottom + 20 },
+          { minHeight: height, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 20 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.brand}>
-          <FloatingLogo size={compact ? 72 : 92} />
-          <Rise order={1}>
-            <Wordmark size={compact ? 34 : 40} />
-          </Rise>
-          <Rise order={2}>
-            <Text variant="bodyLarge" color="textSecondary" style={styles.center}>
-              Plan · Focus · Achieve
-            </Text>
-          </Rise>
+        <View style={styles.topBar}>
+          <Wordmark size={24} />
+          <ThemeToggle />
         </View>
 
-        <Rise order={3} style={styles.copy}>
-          <Text variant="displayMedium" style={styles.center}>
-            A better you,{'\n'}one habit at a time.
-          </Text>
-          <Text variant="bodyLarge" color="textSecondary" style={styles.center}>
-            Organise your tasks, track your progress, and build the life you want.
-          </Text>
-        </Rise>
+        <Rise
+          order={2}
+          style={[
+            styles.panel,
+            {
+              backgroundColor: dark ? 'rgba(14, 16, 18, 0.74)' : 'rgba(255, 255, 255, 0.8)',
+              borderColor: dark ? 'rgba(123, 189, 232, 0.22)' : 'rgba(189, 216, 233, 0.9)',
+              borderRadius: theme.radii.xl,
+            },
+          ]}
+        >
+          <View style={styles.copy}>
+            <Text variant="headlineLarge" style={styles.center}>
+              Welcome to ClayHabbit
+            </Text>
+            <Text variant="bodyMedium" color="textSecondary" style={styles.center}>
+              Your habits, tasks, notes and money in one calm place.
+            </Text>
+          </View>
 
-        <Rise order={4} style={styles.art}>
-          <WelcomeIllustration maxHeight={compact ? 150 : 210} />
-        </Rise>
-
-        <Rise order={5} style={styles.actions}>
           <GoogleButton busy={busy} onPress={continueWithGoogle} />
 
           {error ? (
@@ -119,7 +131,7 @@ export function AuthScreen() {
             <TrustChip icon="lock" label="Encrypted backup" delay={790} />
           </View>
 
-          <Text variant="caption" color="textTertiary" style={styles.center}>
+          <Text variant="caption" color="textSecondary" style={styles.center}>
             ClayHabbit only receives your name, email and photo from Google. Next, you choose whether your data stays
             on this phone or is backed up, encrypted, to your Google Drive.
           </Text>
@@ -135,8 +147,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    gap: 18,
+    paddingHorizontal: 20,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   flex: {
     flex: 1,
@@ -144,19 +160,14 @@ const styles = StyleSheet.create({
   center: {
     textAlign: 'center',
   },
-  brand: {
-    alignItems: 'center',
-    gap: 4,
+  panel: {
+    marginTop: 'auto',
+    gap: 14,
+    padding: 20,
+    borderWidth: 1,
   },
   copy: {
-    gap: 8,
-  },
-  art: {
-    alignItems: 'center',
-  },
-  actions: {
-    gap: 14,
-    marginTop: 'auto',
+    gap: 4,
   },
   message: {
     flexDirection: 'row',

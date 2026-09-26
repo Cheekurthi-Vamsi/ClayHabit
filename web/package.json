@@ -1,0 +1,37 @@
+{
+  "name": "clayhabit-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build:deploy": "vite build"
+  },
+  "dependencies": {
+    "@clerk/react": "^6.17.2",
+    "@fontsource/manrope": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.0",
+    "@noble/hashes": "^2.4.0",
+    "@sqlite.org/sqlite-wasm": "^3.53.4-build1",
+    "@tanstack/react-query": "^5.104.0",
+    "lucide-react": "^1.48.0",
+    "motion": "^13.4.4",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-router": "^7.18.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "happy-dom": "^20.14.5",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  }
+}

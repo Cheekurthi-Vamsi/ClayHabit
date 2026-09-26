@@ -77,7 +77,7 @@ function Inline({ nodes, base }: { nodes: readonly InlineNode[]; base: TextStyle
             );
           case 'highlight':
             return (
-              <Text key={index} style={[base, { backgroundColor: theme.scheme === 'dark' ? '#5A4A12' : '#FFE9A8' }]}>
+              <Text key={index} style={[base, { backgroundColor: theme.scheme === 'dark' ? '#3F4A14' : '#EEF8C2' }]}>
                 <Inline nodes={node.children} base={base} />
               </Text>
             );
@@ -232,7 +232,7 @@ export const NoteRenderer = memo(function NoteRenderer({ body, text, accent, onT
             );
           case 'code':
             return tapToEdit(
-              <View style={[styles.code, { backgroundColor: theme.scheme === 'dark' ? '#0B0E1C' : '#1B2140' }]}>
+              <View style={[styles.code, { backgroundColor: theme.scheme === 'dark' ? '#050607' : '#001D39' }]}>
                 <Text style={styles.codeText} selectable>
                   {block.text || ' '}
                 </Text>
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   codeText: {
-    color: '#E6E8F5',
+    color: '#E8F1F7',
     fontFamily: 'monospace',
     fontSize: 13,
     lineHeight: 19,

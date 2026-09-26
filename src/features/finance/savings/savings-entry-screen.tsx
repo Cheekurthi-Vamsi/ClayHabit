@@ -55,7 +55,7 @@ export function SavingsEntryScreen() {
         <Button
           label="Create a savings plan"
           icon="plus"
-          gradient={theme.gradients.finance}
+         
           onPress={() => router.replace('/modal/savings-plan')}
         />
       </View>
@@ -154,7 +154,7 @@ export function SavingsEntryScreen() {
           label={kind === 'deposit' ? 'Add to plan' : 'Withdraw'}
           icon="check"
           fullWidth
-          gradient={theme.gradients.finance}
+         
           disabled={amountMinor <= 0 || !selectedPlanId || overdraw}
           loading={addEntry.isPending}
           onPress={submit}

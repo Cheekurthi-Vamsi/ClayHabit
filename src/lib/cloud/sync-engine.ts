@@ -89,6 +89,12 @@ export interface SyncEngineDeps {
   suite: CipherSuite;
   key: Uint8Array;
   keyId: string;
+  /**
+   * Older keys that may still have sealed the Cloud copy (before passcodes).
+   * Only read with; the next save always uses `key`, as a brand-new file so
+   * Drive keeps no revisions sealed with a retired key.
+   */
+  legacyKeys?: readonly { key: Uint8Array; keyId: string }[];
   scope: string;
   device: string | null;
   prefs?: PrefsBridge;
@@ -117,8 +123,20 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     return run;
   };
 
+  const legacyKeys = deps.legacyKeys ?? [];
+  const keyFor = (keyId: string | null | undefined) =>
+    keyId === deps.keyId ? { key: deps.key, keyId: deps.keyId } : legacyKeys.find((legacy) => legacy.keyId === keyId);
+  const sealedWithRetiredKey = (remote: RemoteFile | null) =>
+    remote !== null && (remote.appProperties.keyId ?? null) !== deps.keyId;
+
   async function upload(bytes: Uint8Array, hash: string, schemaVersion: number, remote: RemoteFile | null) {
     const state = await deps.state.load();
+    // A copy sealed with another key is replaced by a new file rather than a new revision of it.
+    let fileId = remote?.id ?? state.fileId;
+    if (remote && sealedWithRetiredKey(remote)) {
+      await deps.store.remove(remote.id);
+      fileId = null;
+    }
     const snapshotId = newSnapshotId(deps.suite);
     const savedAt = now();
     const envelope = await sealSnapshot(deps.suite, {
@@ -134,7 +152,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
       now: savedAt,
     });
     const saved = await deps.store.save({
-      id: remote?.id ?? state.fileId,
+      id: fileId,
       name: fileName,
       content: JSON.stringify(envelope),
       appProperties: {
@@ -156,11 +174,9 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
 
   async function restore(remote: RemoteFile) {
     const envelope = parseEnvelope(await deps.store.download(remote.id));
-    const contents = await openSnapshot(deps.suite, envelope, {
-      key: deps.key,
-      keyId: deps.keyId,
-      scope: deps.scope,
-    });
+    const sealing = keyFor(envelope.keyId);
+    if (!sealing) throw new CloudError('wrong-key');
+    const contents = await openSnapshot(deps.suite, envelope, { ...sealing, scope: deps.scope });
     await deps.snapshots.importSnapshot(contents.bytes);
     if (contents.prefs) deps.prefs?.apply(contents.prefs);
 
@@ -176,7 +192,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
 
   function assertOurKey(remote: RemoteFile) {
     const remoteKeyId = remote.appProperties.keyId;
-    if (remoteKeyId && remoteKeyId !== deps.keyId) throw new CloudError('wrong-key');
+    if (remoteKeyId && !keyFor(remoteKeyId)) throw new CloudError('wrong-key');
   }
 
   async function sync({ prefer }: { prefer?: 'local' | 'remote' } = {}): Promise<SyncOutcome> {
@@ -189,6 +205,10 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
       if (!remote) throw new CloudError('corrupt', 'no Cloud copy to restore');
       assertOurKey(remote);
       await restore(remote);
+      if (sealedWithRetiredKey(remote)) {
+        const after = await deps.snapshots.exportSnapshot();
+        await upload(after.bytes, await deps.suite.sha256Hex(after.bytes), after.schemaVersion, remote);
+      }
       return { kind: 'restored' };
     }
     if (prefer === 'local') {
@@ -208,7 +228,8 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     const localChanged = localHash !== state.localHash;
 
     if (!remoteChanged) {
-      if (!localChanged) return { kind: 'up-to-date' };
+      // Nothing new either side, but the Cloud copy is still sealed with a retired key: re-seal it now.
+      if (!localChanged && !sealedWithRetiredKey(remote)) return { kind: 'up-to-date' };
       await upload(local.bytes, localHash, local.schemaVersion, remote);
       return { kind: 'uploaded' };
     }
@@ -218,6 +239,11 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     const localHasData = await deps.snapshots.hasUserData();
     if (neverSynced ? !localHasData : !localChanged) {
       await restore(remote);
+      if (sealedWithRetiredKey(remote)) {
+        // Taken in with the old key; put it straight back under the current one.
+        const after = await deps.snapshots.exportSnapshot();
+        await upload(after.bytes, await deps.suite.sha256Hex(after.bytes), after.schemaVersion, remote);
+      }
       return { kind: 'restored' };
     }
     return { kind: 'conflict', remote: summarize(remote), localHasData };

@@ -32,10 +32,23 @@ function run(command, args, cwd) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-if (!existsSync('android')) {
-  run('npx', ['expo', 'prebuild', '--platform', 'android'], '.');
-}
 // Absolute path: cmd.exe skips the current directory when NoDefaultCurrentDirectoryInExePath is set.
 const gradlew = path.resolve('android', isWindows ? 'gradlew.bat' : 'gradlew');
+
+// No android/ yet, or a half-deleted one (e.g. an interrupted clean prebuild): generate it fresh.
+if (!existsSync(gradlew)) {
+  const prebuild = spawnSync(
+    isWindows ? 'npx expo prebuild --platform android --clean --no-install' : 'npx',
+    isWindows ? [] : ['expo', 'prebuild', '--platform', 'android', '--clean', '--no-install'],
+    { stdio: 'inherit', shell: isWindows },
+  );
+  if (prebuild.status !== 0 || !existsSync(gradlew)) {
+    console.error(
+      '\nCould not regenerate android/. If it says a folder is "busy or locked", another program still has a file in' +
+        ' android/ open (a copy to your phone, File Explorer, antivirus). Close it or restart Windows, then run this again.',
+    );
+    process.exit(1);
+  }
+}
 run(isWindows ? `"${gradlew}"` : gradlew, [target.task], 'android');
 console.log(`\n${kind.toUpperCase()} ready: ${path.resolve(target.output)}`);

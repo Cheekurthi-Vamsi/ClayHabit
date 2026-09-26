@@ -47,3 +47,11 @@ example
 # generated native folders
 /ios
 /android
+
+# Built Android releases (uploaded to GitHub Releases, not committed)
+/release/
+
+# Native build output of the local Expo modules (Gradle / Xcode)
+/modules/*/android/build/
+/modules/*/android/.gradle/
+/modules/*/ios/build/

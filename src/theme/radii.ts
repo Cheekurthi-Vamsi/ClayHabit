@@ -1,10 +1,10 @@
 export const radii = {
   sm: 10,
-  md: 16,
+  md: 18,
   /** Cards and bento tiles. */
-  lg: 22,
+  lg: 26,
   /** Buttons and sheets. */
-  xl: 28,
+  xl: 30,
   full: 999,
 } as const;
 

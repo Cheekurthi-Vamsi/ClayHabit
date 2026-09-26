@@ -222,4 +222,59 @@ describe('sync engine', () => {
     expect(results.map((result) => result.kind)).toEqual(['uploaded', 'up-to-date', 'up-to-date']);
     expect(drive.files.size).toBe(1);
   });
+
+  describe('moving off the old (pre-passcode) key', () => {
+    const oldKey = suite.randomBytes(32);
+    const newKey = suite.randomBytes(32);
+
+    async function withLegacy(phone: ReturnType<typeof fakePhone>, store: CloudFileStore) {
+      return createSyncEngine({
+        store,
+        snapshots: phone.snapshots,
+        state: phone.stateStore,
+        suite,
+        key: newKey,
+        keyId: await keyIdFor(suite, newKey),
+        legacyKeys: [{ key: oldKey, keyId: await keyIdFor(suite, oldKey) }],
+        scope: 'user_1',
+        device: 'Phone',
+        prefs: phone.prefs,
+      });
+    }
+
+    it('re-seals an unchanged Cloud copy under the new key, as a new file', async () => {
+      const drive = fakeDrive();
+      const phone = fakePhone('my notes');
+      await (await engineFor(phone, drive.store, oldKey)).sync();
+      const [oldFile] = [...drive.files.values()];
+
+      expect(await (await withLegacy(phone, drive.store)).sync()).toEqual({ kind: 'uploaded' });
+      const [file] = [...drive.files.values()];
+      expect(drive.files.size).toBe(1);
+      expect(file.id).not.toBe(oldFile.id);
+      expect(file.appProperties.keyId).toBe(await keyIdFor(suite, newKey));
+
+      // Only the new key opens it now.
+      const fresh = fakePhone('');
+      expect(await (await engineFor(fresh, drive.store, newKey)).sync()).toEqual({ kind: 'restored' });
+      expect(fresh.data).toBe('my notes');
+    });
+
+    it('restores an old-key copy onto a new phone and re-seals it straight away', async () => {
+      const drive = fakeDrive();
+      await (await engineFor(fakePhone('from the old phone'), drive.store, oldKey)).sync();
+
+      const phone = fakePhone('');
+      expect(await (await withLegacy(phone, drive.store)).sync()).toEqual({ kind: 'restored' });
+      expect(phone.data).toBe('from the old phone');
+      const [file] = [...drive.files.values()];
+      expect(file.appProperties.keyId).toBe(await keyIdFor(suite, newKey));
+    });
+
+    it('still refuses a copy sealed with a key it has never known', async () => {
+      const drive = fakeDrive();
+      await (await engineFor(fakePhone('someone else'), drive.store, suite.randomBytes(32))).sync();
+      await expect((await withLegacy(fakePhone(''), drive.store)).sync()).rejects.toMatchObject({ code: 'wrong-key' });
+    });
+  });
 });

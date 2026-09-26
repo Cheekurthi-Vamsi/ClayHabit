@@ -1,0 +1,133 @@
+/* Download, Privacy and Terms: long-form pages in the landing's style. */
+
+.info {
+  padding-block: clamp(32px, 6vw, 72px) clamp(64px, 8vw, 110px);
+}
+.info__inner {
+  max-width: 780px;
+  margin-inline: auto;
+  display: grid;
+  gap: 28px;
+}
+.info__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+.info__lead {
+  font-size: clamp(17px, 1.5vw, 19px);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.info__updated {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+.prose {
+  display: grid;
+  gap: 14px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+.prose h2 {
+  margin-top: 18px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary);
+}
+.prose strong {
+  color: var(--color-text-primary);
+}
+.prose ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+}
+.prose a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+/* Download */
+.dl-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding: clamp(24px, 4vw, 40px);
+  border-radius: clamp(28px, 3vw, 40px);
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+  border: 2px solid var(--ink);
+  box-shadow: 0 8px 0 var(--ink);
+}
+.dl-hero .btn--panel { --fill: #001d39; --on: #fff; }
+.dl-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(20, 21, 18, 0.72);
+}
+/* Reserves its line while the version loads, so nothing below it moves. */
+.dl-version {
+  min-height: 22px;
+}
+.steps {
+  display: grid;
+  gap: 14px;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+.steps li::before {
+  content: counter(step);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+  border: 2px solid var(--ink);
+  font-weight: 800;
+}
+.steps strong {
+  display: block;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+@media (max-width: 640px) {
+  .dl-hero { grid-template-columns: 1fr; }
+}

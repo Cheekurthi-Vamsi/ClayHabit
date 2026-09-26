@@ -4,16 +4,9 @@ import { useSSO } from '@clerk/expo/experimental';
 import { CloudError } from '@/lib/cloud/cloud-error';
 import { googleSignInAvailable, signInWithGoogle } from '@/lib/cloud/google-account';
 
-/** Why a Google sign-in didn't end in a session; `null` detail means the person backed out. */
-export class GoogleAuthError extends Error {
-  constructor(
-    message: string,
-    readonly cancelled = false,
-  ) {
-    super(message);
-    this.name = 'GoogleAuthError';
-  }
-}
+import { GoogleAuthError } from './google-auth-error';
+
+export { GoogleAuthError };
 
 interface ClerkApiErrorLike {
   errors?: { code?: string; longMessage?: string; message?: string }[];

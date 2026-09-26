@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useAuth } from '@clerk/expo';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -8,7 +7,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,12 +16,11 @@ import type { IconName } from '@/components/ui';
 import { FloatingLogo, GoogleButton, SoftBackdrop } from '@/features/auth/auth-visuals';
 import { forgetLastUser } from '@/lib/auth/account-database';
 import { authEnabled } from '@/lib/auth/config';
-import type { GoogleAccount } from '@/lib/cloud/google-account';
 import type { RemoteSummary } from '@/lib/cloud/sync-engine';
 import { useAppTheme } from '@/theme';
 
 /** Hero + sheet, matching the sign-in screen, for every step before the app opens. */
-function CloudFrame({
+export function CloudFrame({
   icon,
   title,
   subtitle,
@@ -76,7 +73,7 @@ function CloudFrame({
   );
 }
 
-function Point({ icon, title, body }: { icon: IconName; title: string; body: string }) {
+export function Point({ icon, title, body }: { icon: IconName; title: string; body: string }) {
   const theme = useAppTheme();
   return (
     <View style={styles.point}>
@@ -93,7 +90,7 @@ function Point({ icon, title, body }: { icon: IconName; title: string; body: str
   );
 }
 
-function ErrorNote({ message }: { message: string | null | undefined }) {
+export function ErrorNote({ message }: { message: string | null | undefined }) {
   const theme = useAppTheme();
   if (!message) return null;
   return (
@@ -122,7 +119,7 @@ function ClerkSignOutLink() {
   );
 }
 
-function SignOutLink() {
+export function SignOutLink() {
   return authEnabled ? <ClerkSignOutLink /> : null;
 }
 
@@ -255,133 +252,6 @@ export function ChooseCopyScreen({
         </Text>
         <Button label="Keep this phone's data" variant="outline" disabled={busy} onPress={keepPhone} />
       </Card>
-    </CloudFrame>
-  );
-}
-
-/** The Cloud has data but this phone can't get the key for it. */
-export function RecoveryKeyScreen({
-  error,
-  busy,
-  canRetry,
-  onSubmit,
-  onRetry,
-  onStartOver,
-}: {
-  error?: string | null;
-  busy: boolean;
-  canRetry: boolean;
-  onSubmit: (backupKey: string) => void;
-  onRetry: () => void;
-  onStartOver: () => void;
-}) {
-  const theme = useAppTheme();
-  const [value, setValue] = useState('');
-
-  const startOver = () =>
-    Alert.alert(
-      'Start over?',
-      "Your encrypted Cloud copy will be deleted and can't be recovered. ClayHabbit will create a new key and save this phone's data instead.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete Cloud copy', style: 'destructive', onPress: onStartOver },
-      ],
-    );
-
-  return (
-    <CloudFrame
-      icon="key"
-      title="Unlock your Cloud"
-      subtitle="Your Cloud copy is encrypted, and this phone doesn't have its key yet."
-    >
-      {canRetry ? (
-        <Text variant="bodyMedium" color="textSecondary">
-          Your key is kept with your ClayHabbit account, which couldn&apos;t be reached just now. Check your connection
-          and try again — or enter your backup key.
-        </Text>
-      ) : (
-        <Text variant="bodyMedium" color="textSecondary">
-          Enter the backup key from Settings → Cloud on a phone where ClayHabbit is already connected.
-        </Text>
-      )}
-
-      {canRetry ? <Button label="Try again" icon="refresh-cw" loading={busy} onPress={onRetry} /> : null}
-
-      <View style={styles.field}>
-        <Text variant="labelMedium" color="textSecondary">
-          BACKUP KEY
-        </Text>
-        <TextInput
-          value={value}
-          onChangeText={setValue}
-          placeholder="XXXXXXXX-XXXXXXXX-…"
-          placeholderTextColor={theme.colors.textTertiary}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          multiline
-          accessibilityLabel="Backup key"
-          style={[
-            styles.keyInput,
-            theme.typography.bodyLarge,
-            {
-              color: theme.colors.textPrimary,
-              backgroundColor: theme.colors.surfaceMuted,
-              borderRadius: theme.radii.md,
-            },
-          ]}
-        />
-      </View>
-      <ErrorNote message={error} />
-      <Button
-        label="Unlock"
-        icon="unlock"
-        variant={canRetry ? 'outline' : 'dock'}
-        loading={busy && !canRetry}
-        disabled={busy || value.trim().length === 0}
-        onPress={() => onSubmit(value)}
-      />
-      <Button label="Lost the key? Start over" variant="ghost" size="sm" disabled={busy} onPress={startOver} />
-      <SignOutLink />
-    </CloudFrame>
-  );
-}
-
-/** Connected a different Google account from the one holding this account's Cloud copy. */
-export function WrongGoogleAccountScreen({
-  connected,
-  expectedEmail,
-  onSwitch,
-  onContinue,
-}: {
-  connected: GoogleAccount;
-  expectedEmail: string;
-  onSwitch: () => void;
-  onContinue: () => void;
-}) {
-  return (
-    <CloudFrame
-      icon="user-x"
-      title="Different Google account"
-      subtitle={`Your ClayHabbit data is saved in ${expectedEmail}'s Drive.`}
-    >
-      <Text variant="bodyMedium" color="textSecondary">
-        You connected {connected.email}. To bring your data back, connect {expectedEmail} instead.
-      </Text>
-      <Button label={`Connect ${expectedEmail}`} icon="refresh-cw" onPress={onSwitch} />
-      <Button
-        label={`Use ${connected.email} from now on`}
-        variant="outline"
-        onPress={() =>
-          Alert.alert(
-            'Switch Cloud accounts?',
-            `From now on ClayHabbit saves to ${connected.email}. The copy in ${expectedEmail} stays there, untouched.`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Switch', onPress: onContinue },
-            ],
-          )
-        }
-      />
     </CloudFrame>
   );
 }

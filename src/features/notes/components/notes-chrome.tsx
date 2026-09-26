@@ -256,13 +256,13 @@ export function NotesEmptyState({ filtered, onCreate }: { filtered: boolean; onC
       <CartoonPress
         onPress={onCreate}
         radius={999}
-        fill={theme.gradients.primary}
+        fill={theme.colors.highlight}
         haptic="medium"
         faceStyle={styles.emptyButton}
         accessibilityLabel="Create note"
       >
-        <Icon name="plus" size={18} color="#FFFFFF" />
-        <Text variant="titleMedium" style={styles.white}>
+        <Icon name="plus" size={18} color={theme.colors.onHighlight} />
+        <Text variant="titleMedium" style={[styles.buttonLabel, { color: theme.colors.onHighlight }]}>
           Create note
         </Text>
       </CartoonPress>
@@ -287,14 +287,14 @@ export function QuickNoteButton({ bottom, onPress }: { bottom: number; onPress: 
       <CartoonPress
         onPress={onPress}
         radius={999}
-        fill={theme.gradients.primary}
+        fill={theme.colors.highlight}
         haptic="medium"
         faceStyle={styles.fabFace}
         accessibilityLabel="New note"
         accessibilityHint="Choose a blank note, checklist, quick note, code note or template."
       >
-        <Icon name="edit-3" size={20} color="#FFFFFF" />
-        <Text variant="titleMedium" style={styles.white}>
+        <Icon name="edit-3" size={20} color={theme.colors.onHighlight} />
+        <Text variant="titleMedium" style={[styles.buttonLabel, { color: theme.colors.onHighlight }]}>
           New note
         </Text>
       </CartoonPress>
@@ -392,8 +392,7 @@ const styles = StyleSheet.create({
   center: {
     textAlign: 'center',
   },
-  white: {
-    color: '#FFFFFF',
+  buttonLabel: {
     fontFamily: 'Manrope_700Bold',
   },
   fab: {

@@ -4,24 +4,13 @@ import * as Device from 'expo-device';
 import { addDatabaseChangeListener, useSQLiteContext } from 'expo-sqlite';
 import { Alert, AppState } from 'react-native';
 
-import { useAccount } from '@/features/auth/account-context';
-import { useStorageModeRemote } from '@/lib/auth/clerk-storage-mode';
 import { rescheduleNoteReminders } from '@/features/notes/services/note-reminders';
 import { rescheduleAllReminders } from '@/features/tasks/hooks';
-import { authEnabled } from '@/lib/auth/config';
-import { useKeyEscrow } from '@/lib/cloud/clerk-escrow';
+import { UnlockPasscodeScreen } from '@/features/vault/passcode-screens';
+import { useVault } from '@/features/vault/vault-context';
+import { useLegacyClerkData, type LegacyClerkData } from '@/lib/auth/legacy-clerk-data';
 import { cloudErrorMessage, CloudError, toCloudError } from '@/lib/cloud/cloud-error';
-import {
-  cacheKey,
-  createKeyRecord,
-  forgetCachedKey,
-  formatBackupKey,
-  keyBytesOf,
-  loadCachedKey,
-  recordFromBackupKey,
-  type KeyRecord,
-} from '@/lib/cloud/cloud-key';
-import { cloudConfigured } from '@/lib/cloud/config';
+import { forgetCachedKey, keyBytesOf, loadCachedKey } from '@/lib/cloud/cloud-key';
 import { createDriveStore } from '@/lib/cloud/drive-client';
 import { expoCipherSuite } from '@/lib/cloud/expo-cipher-suite';
 import {
@@ -29,122 +18,70 @@ import {
   connectSilently,
   disconnectGoogle,
   getAccessToken,
-  googleSignInAvailable,
   revokeDriveAccess,
   type GoogleAccount,
 } from '@/lib/cloud/google-account';
 import { createSqliteSnapshots } from '@/lib/cloud/sqlite-snapshots';
 import { cloudFileName, createSyncEngine, type RemoteSummary, type SyncEngine } from '@/lib/cloud/sync-engine';
 import { createSyncStateStore } from '@/lib/cloud/sync-state-store';
-import { resolveStorageMode, saveLocalStorageMode, type StorageMode } from '@/lib/storage/storage-mode';
-import { useSessionStore } from '@/store/session-store';
+import type { StorageMode } from '@/lib/storage/storage-mode';
+import { fetchRemoteKeyring, saveRemoteKeyring, type RemoteKeyring } from '@/lib/vault/cloud-keyring';
+import { openKeyring, WrongPasscodeError, type DataKey } from '@/lib/vault/keyring';
+import { rekeyDatabase } from '@/lib/vault/secure-database';
+import { loadLocalKeyring } from '@/lib/vault/vault-store';
 import { applySyncedSettings, pickSyncedSettings, useSettingsStore } from '@/store/settings-store';
 
 import { CloudContext, localOnlyCloud, type CloudApi, type CloudStatus } from './cloud-context';
-import {
-  ChooseCopyScreen,
-  CloudWorkingScreen,
-  ConnectCloudScreen,
-  RecoveryKeyScreen,
-  WrongGoogleAccountScreen,
-} from './cloud-screens';
-import { StorageChoiceScreen } from './storage-choice-screen';
+import { ChooseCopyScreen, CloudWorkingScreen, ConnectCloudScreen } from './cloud-screens';
 
-/** Quiet period after the last change before syncing, and the longest a change waits. */
-const DEBOUNCE_MS = 8_000;
-const MAX_WAIT_MS = 45_000;
+/**
+ * Quiet period after the last change before syncing, and the longest a change waits:
+ * short, so an edit reaches the Cloud (and the web app) within a couple of seconds,
+ * while a burst of taps still goes up as one save.
+ */
+const DEBOUNCE_MS = 1_500;
+const MAX_WAIT_MS = 5_000;
+/** How often an open app checks the Cloud for changes made elsewhere (the web app, another phone). */
+const PULL_INTERVAL_MS = 20_000;
 const SIGN_OUT_SYNC_TIMEOUT_MS = 6_000;
 
 type Phase =
   | { name: 'connecting' }
   | { name: 'connect'; error: string | null; busy: boolean }
   | { name: 'working'; message: string }
-  | { name: 'wrong-account'; google: GoogleAccount; expectedEmail: string }
-  | { name: 'recovery'; google: GoogleAccount; error: string | null; busy: boolean; canRetry: boolean }
+  | { name: 'other-key'; google: GoogleAccount; remote: RemoteKeyring; error: string | null; busy: boolean }
   | { name: 'choose'; google: GoogleAccount; remote: RemoteSummary; busy: boolean }
   | { name: 'ready'; google: GoogleAccount | null };
 
-const staticLocalOnly = {
-  notConfigured: localOnlyCloud('not-configured'),
-  needsDevBuild: localOnlyCloud('needs-dev-build'),
-};
-
 /**
- * Sits between the database and the app, and decides where the data lives:
+ * Sits between the (encrypted) database and the app. The vault has already
+ * decided where the data lives and unlocked its key:
  *
- *   sign in → choose "Cloud" or "This phone" (once per account)
- *     phone → app (SQLite on this device only)
- *     Cloud → connect Google Drive → (first time on this phone) restore → app
+ *   phone → app, nothing leaves the device
+ *   Cloud → Google Drive connected → keyring in step → (first time) restore → app
  *
- * The app always works on the local SQLite database; Cloud adds an encrypted
- * copy in Google Drive, reconnects silently on each launch and keeps syncing
- * in the background. Without Cloud configured (or in Expo Go, which lacks the
- * native Google module) the app runs on this device only and doesn't ask.
+ * The app always works on the local database; Cloud adds an encrypted copy
+ * in the person's Drive, sealed with the passcode-protected data key, and
+ * keeps it in sync in the background.
  */
 export function CloudGate({ children }: { children: React.ReactNode }) {
-  if (!cloudConfigured) {
-    return <CloudContext.Provider value={staticLocalOnly.notConfigured}>{children}</CloudContext.Provider>;
-  }
-  if (!googleSignInAvailable()) {
-    return <CloudContext.Provider value={staticLocalOnly.needsDevBuild}>{children}</CloudContext.Provider>;
-  }
-  return <StorageGate>{children}</StorageGate>;
-}
-
-function StorageGate({ children }: { children: React.ReactNode }) {
-  const account = useAccount();
-  const scope = account?.userId ?? 'local';
-  const remote = useStorageModeRemote();
-  const remoteRef = useRef(remote);
-  useEffect(() => {
-    remoteRef.current = remote;
-  }, [remote]);
-
-  // undefined = still reading; null = not chosen yet.
-  const [mode, setMode] = useState<StorageMode | null | undefined>(undefined);
-  // Right after a choice the Drive consent opens by itself instead of waiting for a tap.
-  const [justChose, setJustChose] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    resolveStorageMode(scope, remoteRef.current).then(
-      (resolved) => !cancelled && setMode(resolved),
-      () => !cancelled && setMode(null),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [scope]);
-
-  const choose = useCallback(
-    async (next: StorageMode) => {
-      await saveLocalStorageMode(scope, next).catch(() => {});
-      await remote?.write(next).catch(() => {});
-      useSessionStore.getState().showWelcome(next === 'cloud' ? 'cloud-ready' : 'device-ready');
-      setJustChose(true);
-      setMode(next);
-    },
-    [remote, scope],
-  );
-
+  const vault = useVault();
   const deviceApi = useMemo(
     () =>
-      localOnlyCloud('device-only', {
-        setStorageMode: choose,
-        // Google stays signed in natively after sign-in; let go of it with the account.
-        prepareSignOut: disconnectGoogle,
+      localOnlyCloud(vault.cloudAvailable ? 'device-only' : 'not-configured', {
+        setStorageMode: vault.setStorageMode,
+        prepareSignOut: async () => {
+          await disconnectGoogle().catch(() => {});
+          await vault.lock();
+        },
       }),
-    [choose],
+    [vault],
   );
 
-  if (mode === undefined) return <CloudWorkingScreen message="Getting your space ready…" />;
-  if (mode === null) return <StorageChoiceScreen onChoose={choose} />;
-  if (mode === 'device') return <CloudContext.Provider value={deviceApi}>{children}</CloudContext.Provider>;
-  return (
-    <CloudSession autoConnect={justChose} onChooseStorage={choose}>
-      {children}
-    </CloudSession>
-  );
+  if (vault.storageMode === 'device' || !vault.cloudAvailable) {
+    return <CloudContext.Provider value={deviceApi}>{children}</CloudContext.Provider>;
+  }
+  return <CloudSession onChooseStorage={vault.setStorageMode}>{children}</CloudSession>;
 }
 
 function deviceLabel(): string | null {
@@ -155,28 +92,31 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined>
   return Promise.race([promise, new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), ms))]);
 }
 
+/** Keys from before passcodes, still able to open an old Cloud copy until it's re-sealed. */
+async function loadLegacyKeys(scope: string, legacy: LegacyClerkData | null): Promise<DataKey[]> {
+  const records = [await loadCachedKey(scope).catch(() => null), await legacy?.readCloudKey().catch(() => null)];
+  const keys: DataKey[] = [];
+  for (const record of records) {
+    if (record && !keys.some((key) => key.keyId === record.keyId)) {
+      keys.push({ key: keyBytesOf(record), keyId: record.keyId });
+    }
+  }
+  return keys;
+}
+
 function CloudSession({
   children,
-  autoConnect,
   onChooseStorage,
 }: {
   children: React.ReactNode;
-  autoConnect: boolean;
   onChooseStorage: (mode: StorageMode) => Promise<void>;
 }) {
   const db = useSQLiteContext();
   const queryClient = useQueryClient();
-  const account = useAccount();
-  const scope = account?.userId ?? 'local';
+  const vault = useVault();
+  const legacy = useLegacyClerkData();
+  const scope = vault.scope;
   const autoSync = useSettingsStore((state) => state.cloudAutoSync);
-
-  // Clerk hands out a new user object on every update; the latest escrow is read through a ref
-  // so those updates don't restart the whole connection flow.
-  const escrow = useKeyEscrow();
-  const escrowRef = useRef(escrow);
-  useEffect(() => {
-    escrowRef.current = escrow;
-  }, [escrow]);
 
   const [phase, setPhase] = useState<Phase>({ name: 'connecting' });
   const [status, setStatus] = useState<CloudStatus>('syncing');
@@ -185,33 +125,52 @@ function CloudSession({
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   const engineRef = useRef<SyncEngine | null>(null);
-  const keyRef = useRef<KeyRecord | null>(null);
   const googleRef = useRef<GoogleAccount | null>(null);
   const conflictRef = useRef(false);
-  const acceptedAccountRef = useRef<string | null>(null);
+  const legacyKeysRef = useRef<DataKey[]>([]);
+  // The vault and Clerk objects change identity on updates; read the latest through refs.
+  const vaultRef = useRef(vault);
+  const legacyRef = useRef(legacy);
+  useEffect(() => {
+    vaultRef.current = vault;
+    legacyRef.current = legacy;
+  }, [vault, legacy]);
 
   const store = useMemo(() => createDriveStore(getAccessToken), []);
   const stateStore = useMemo(() => createSyncStateStore(scope), [scope]);
 
   const buildEngine = useCallback(
-    (record: KeyRecord) => {
+    (dataKey: DataKey) => {
       const engine = createSyncEngine({
         store,
         snapshots: createSqliteSnapshots(db),
         state: stateStore,
         suite: expoCipherSuite,
-        key: keyBytesOf(record),
-        keyId: record.keyId,
+        key: dataKey.key,
+        keyId: dataKey.keyId,
+        legacyKeys: legacyKeysRef.current,
         scope,
         device: deviceLabel(),
         prefs: { read: () => pickSyncedSettings(), apply: applySyncedSettings },
       });
       engineRef.current = engine;
-      keyRef.current = record;
       return engine;
     },
     [db, scope, stateStore, store],
   );
+
+  /** Once the Cloud copy is sealed with the passcode key, the retired keys and Clerk fields go for good. */
+  const retireLegacy = useCallback(async () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (legacyKeysRef.current.length > 0) {
+      const remote = await engine.inspectRemote();
+      if (remote.exists && remote.keyId !== vaultRef.current.dataKey.keyId) return;
+      await forgetCachedKey(scope).catch(() => {});
+      legacyKeysRef.current = [];
+    }
+    await legacyRef.current?.purge().catch(() => {});
+  }, [scope]);
 
   /** Everything cached from the old data — queries and scheduled reminders — is stale once the Cloud copy replaces it. */
   const afterRestore = useCallback(async () => {
@@ -271,6 +230,7 @@ function CloudSession({
         setError(null);
         setStatus('synced');
         setLastSyncedAt((await engine.loadState()).lastSyncedAt);
+        await retireLegacy();
       } catch (caught) {
         const cloudError = toCloudError(caught);
         if (cloudError.code === 'auth') {
@@ -290,7 +250,7 @@ function CloudSession({
         }
       }
     },
-    [afterRestore],
+    [afterRestore, retireLegacy],
   );
 
   const runSyncRef = useRef(runSync);
@@ -311,13 +271,14 @@ function CloudSession({
         setError(null);
         setStatus('synced');
         setLastSyncedAt((await engine.loadState()).lastSyncedAt);
+        await retireLegacy();
       } catch (caught) {
         const cloudError = toCloudError(caught);
         setStatus(cloudError.code === 'offline' ? 'offline' : 'error');
         setError(cloudErrorMessage(cloudError));
       }
     },
-    [afterRestore],
+    [afterRestore, retireLegacy],
   );
 
   const resolveRef = useRef(resolveConflict);
@@ -325,111 +286,15 @@ function CloudSession({
     resolveRef.current = resolveConflict;
   }, [resolveConflict]);
 
-  // ---- Getting the key ----------------------------------------------------------------------
+  // ---- Opening: connect → keyring in step → first sync → app -----------------------------------
 
-  /** The account key, or why there isn't one available on this phone yet. */
-  const resolveKey = useCallback(
-    async (google: GoogleAccount | null): Promise<KeyRecord | 'unreachable' | 'none'> => {
-      const cached = await loadCachedKey(scope);
-      const currentEscrow = escrowRef.current;
-      let escrowed: KeyRecord | null = null;
-      let escrowReachable = false;
-      if (currentEscrow) {
-        try {
-          escrowed = await currentEscrow.read();
-          escrowReachable = true;
-        } catch {
-          escrowReachable = false;
-        }
-      }
-
-      if (escrowed) {
-        if (!cached || cached.keyId !== escrowed.keyId) await cacheKey(scope, escrowed);
-        if (google && !escrowed.googleEmail) {
-          const updated = { ...escrowed, googleEmail: google.email };
-          await currentEscrow?.write(updated).catch(() => {});
-          return updated;
-        }
-        return escrowed;
-      }
-      if (cached) {
-        // Made on this phone before the account could store it — hand it over now.
-        if (currentEscrow && escrowReachable) await currentEscrow.write(cached).catch(() => {});
-        return cached;
-      }
-      // With sign-in on, a key must be stored with the account; if the account can't be reached, wait.
-      if (authEnabled && !(currentEscrow && escrowReachable)) return 'unreachable';
-      return 'none';
-    },
-    [scope],
-  );
-
-  // ---- Opening: connect → key → first sync → app -----------------------------------------------
-
-  const open = useCallback(
-    async (google: GoogleAccount | null) => {
-      googleRef.current = google;
-      if (google) setPhase({ name: 'working', message: 'Unlocking your Cloud…' });
-
-      let record: KeyRecord | 'unreachable' | 'none';
-      try {
-        record = await resolveKey(google);
-      } catch (caught) {
-        setPhase({ name: 'connect', error: cloudErrorMessage(caught), busy: false });
-        return;
-      }
-
-      if (record === 'unreachable' || record === 'none') {
-        if (!google) {
-          setPhase({ name: 'connect', error: cloudErrorMessage(new CloudError('offline')), busy: false });
-          return;
-        }
-        let remoteExists: boolean;
-        try {
-          remoteExists = (await store.find(cloudFileName(scope))) !== null;
-        } catch (caught) {
-          setPhase({ name: 'connect', error: cloudErrorMessage(caught), busy: false });
-          return;
-        }
-        if (remoteExists || record === 'unreachable') {
-          setPhase({ name: 'recovery', google, error: null, busy: false, canRetry: record === 'unreachable' });
-          return;
-        }
-        // A brand-new Cloud: make the key and keep it with the account.
-        const fresh = await createKeyRecord(expoCipherSuite, google.email);
-        try {
-          await escrowRef.current?.write(fresh);
-        } catch {
-          setPhase({
-            name: 'connect',
-            error: "Couldn't save your Cloud key to your ClayHabbit account. Check your connection and try again.",
-            busy: false,
-          });
-          return;
-        }
-        await cacheKey(scope, fresh);
-        record = fresh;
-      }
-
-      if (
-        google &&
-        record.googleEmail &&
-        record.googleEmail.toLowerCase() !== google.email.toLowerCase() &&
-        acceptedAccountRef.current !== google.email
-      ) {
-        setPhase({ name: 'wrong-account', google, expectedEmail: record.googleEmail });
-        return;
-      }
-
-      const engine = buildEngine(record);
+  const startSyncing = useCallback(
+    async (google: GoogleAccount, dataKey: DataKey) => {
+      const engine = buildEngine(dataKey);
       const state = await engine.loadState();
 
       if (state.lastSyncedAt === null) {
         // First time on this phone: the data has to be in place before the app opens.
-        if (!google) {
-          setPhase({ name: 'connect', error: cloudErrorMessage(new CloudError('offline')), busy: false });
-          return;
-        }
         setPhase({ name: 'working', message: 'Bringing your data from the Cloud…' });
         try {
           const outcome = await engine.sync();
@@ -441,13 +306,9 @@ function CloudSession({
           setStatus('synced');
           setLastSyncedAt((await engine.loadState()).lastSyncedAt);
           setPhase({ name: 'ready', google });
+          await retireLegacy();
         } catch (caught) {
-          const cloudError = toCloudError(caught);
-          if (cloudError.code === 'wrong-key') {
-            setPhase({ name: 'recovery', google, error: cloudError.message, busy: false, canRetry: false });
-          } else {
-            setPhase({ name: 'connect', error: cloudErrorMessage(cloudError), busy: false });
-          }
+          setPhase({ name: 'connect', error: cloudErrorMessage(caught), busy: false });
         }
         return;
       }
@@ -457,10 +318,37 @@ function CloudSession({
       setPhase({ name: 'ready', google });
       setTimeout(() => void runSyncRef.current(), 0);
     },
-    [afterRestore, buildEngine, resolveKey, scope, store],
+    [afterRestore, buildEngine, retireLegacy],
   );
 
-  // Changes → sync shortly after; leaving the app → sync now; coming back → pick up other phones' changes.
+  const open = useCallback(
+    async (google: GoogleAccount) => {
+      googleRef.current = google;
+      setPhase({ name: 'working', message: 'Checking your Cloud…' });
+      legacyKeysRef.current = await loadLegacyKeys(scope, legacyRef.current);
+      const dataKey = vaultRef.current.dataKey;
+      try {
+        const remote = await fetchRemoteKeyring(store, scope);
+        if (!remote) {
+          // This phone's key joins the Cloud (e.g. it switched from phone-only).
+          const local = await loadLocalKeyring(scope);
+          if (!local) throw new CloudError('corrupt', 'no keyring on this phone');
+          await saveRemoteKeyring(store, scope, local);
+        } else if (remote.keyring.keyId !== dataKey.keyId) {
+          setPhase({ name: 'other-key', google, remote, error: null, busy: false });
+          return;
+        }
+      } catch (caught) {
+        setPhase({ name: 'connect', error: cloudErrorMessage(caught), busy: false });
+        return;
+      }
+      await startSyncing(google, dataKey);
+    },
+    [scope, startSyncing, store],
+  );
+
+  // Changes → sync shortly after; leaving the app → sync now; coming back, and every few seconds
+  // while open → pick up changes from the web app and other phones.
   const ready = phase.name === 'ready';
   useEffect(() => {
     if (!ready) return;
@@ -479,7 +367,10 @@ function CloudSession({
       }, wait);
     };
 
-    const changes = autoSync ? addDatabaseChangeListener(schedule) : null;
+    // Only real edits count; the scratch schemas used to build and restore snapshots don't.
+    const changes = autoSync
+      ? addDatabaseChangeListener((event) => event.databaseName === 'main' && schedule())
+      : null;
     const appState = AppState.addEventListener('change', (next) => {
       if (next === 'background' || next === 'active') {
         if (debounce) clearTimeout(debounce);
@@ -488,20 +379,24 @@ function CloudSession({
         void runSyncRef.current();
       }
     });
+    // Checking costs one small metadata request; the copy is only downloaded when it changed.
+    const pull = autoSync
+      ? setInterval(() => {
+          if (!debounce && AppState.currentState === 'active') void runSyncRef.current();
+        }, PULL_INTERVAL_MS)
+      : null;
     return () => {
       if (debounce) clearTimeout(debounce);
+      if (pull) clearInterval(pull);
       changes?.remove();
       appState.remove();
     };
   }, [ready, autoSync]);
 
-  // ---- Gate screen actions --------------------------------------------------------------------
-
   const connect = useCallback(async () => {
     setPhase({ name: 'connect', error: null, busy: true });
     try {
-      const google = await connectInteractively();
-      await open(google);
+      await open(await connectInteractively());
     } catch (caught) {
       const cloudError = toCloudError(caught);
       setPhase({
@@ -512,7 +407,7 @@ function CloudSession({
     }
   }, [open]);
 
-  // Launch: reconnect silently when this phone has connected before.
+  // Launch: reconnect silently (the vault connected already on a first run).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -520,16 +415,16 @@ function CloudSession({
         const google = await connectSilently();
         if (cancelled) return;
         if (google) await open(google);
-        else if (autoConnect) await connect();
         else setPhase({ name: 'connect', error: null, busy: false });
       } catch (caught) {
         if (cancelled) return;
         const cloudError = toCloudError(caught);
         if (cloudError.code === 'offline') {
-          // Offline start is fine for a phone that has synced before and still has its key.
-          const [cached, state] = await Promise.all([loadCachedKey(scope), stateStore.load()]);
-          if (cached && state.lastSyncedAt) {
-            buildEngine(cached);
+          // Offline start is fine for a phone that has synced before.
+          const state = await stateStore.load();
+          if (state.lastSyncedAt) {
+            legacyKeysRef.current = await loadLegacyKeys(scope, legacyRef.current);
+            buildEngine(vaultRef.current.dataKey);
             setLastSyncedAt(state.lastSyncedAt);
             setStatus('offline');
             setError(cloudErrorMessage(cloudError));
@@ -581,18 +476,49 @@ function CloudSession({
       conflict,
       syncNow: () => runSync({ manual: true }),
       resolveConflict,
-      revealBackupKey: async () => (keyRef.current ? formatBackupKey(keyRef.current) : null),
       switchGoogleAccount,
       prepareSignOut: async () => {
         const engine = engineRef.current;
         if (engine && !conflictRef.current) await withTimeout(engine.sync().catch(() => undefined), SIGN_OUT_SYNC_TIMEOUT_MS);
         await disconnectGoogle();
-        // The account keeps the key; this phone doesn't need its copy once signed out.
-        if (escrowRef.current) await forgetCachedKey(scope).catch(() => {});
+        // Signed out, this phone forgets the key; the passcode brings it back.
+        await vaultRef.current.lock();
       },
     }),
-    [conflict, error, lastSyncedAt, phase, resolveConflict, runSync, scope, setStorageMode, status, switchGoogleAccount],
+    [conflict, error, lastSyncedAt, phase, resolveConflict, runSync, setStorageMode, status, switchGoogleAccount],
   );
+
+  const unlockCloudKey = async (current: Extract<Phase, { name: 'other-key' }>, passcode: string) => {
+    setPhase({ ...current, busy: true, error: null });
+    try {
+      const cloudKey = await openKeyring(expoCipherSuite, current.remote.keyring, passcode);
+      // This phone joins the Cloud's key: re-encrypt its database, then sync as usual.
+      await rekeyDatabase(db, cloudKey);
+      await vaultRef.current.adoptDataKey(cloudKey, current.remote.keyring);
+      await startSyncing(current.google, cloudKey);
+    } catch (caught) {
+      setPhase({
+        ...current,
+        busy: false,
+        error: caught instanceof WrongPasscodeError ? 'That isn’t your Cloud passcode.' : cloudErrorMessage(caught),
+      });
+    }
+  };
+
+  const replaceCloudCopy = async (current: Extract<Phase, { name: 'other-key' }>) => {
+    setPhase({ ...current, busy: true, error: null });
+    try {
+      const local = await loadLocalKeyring(scope);
+      if (!local) throw new CloudError('corrupt', 'no keyring on this phone');
+      const snapshot = await store.find(cloudFileName(scope));
+      if (snapshot) await store.remove(snapshot.id);
+      await saveRemoteKeyring(store, scope, local, current.remote.fileId);
+      await stateStore.save({ fileId: null, remoteSnapshotId: null, localHash: null, lastSyncedAt: null });
+      await startSyncing(current.google, vaultRef.current.dataKey);
+    } catch (caught) {
+      setPhase({ ...current, busy: false, error: cloudErrorMessage(caught) });
+    }
+  };
 
   switch (phase.name) {
     case 'connecting':
@@ -608,65 +534,25 @@ function CloudSession({
           onUseDevice={() => void onChooseStorage('device')}
         />
       );
-    case 'wrong-account':
+    case 'other-key':
+      // The Cloud holds data under a different passcode than this phone's (it was set up on its own first).
       return (
-        <WrongGoogleAccountScreen
-          connected={phase.google}
-          expectedEmail={phase.expectedEmail}
-          onSwitch={async () => {
-            await disconnectGoogle();
-            await connect();
-          }}
-          onContinue={async () => {
-            acceptedAccountRef.current = phase.google.email;
-            const record = await loadCachedKey(scope);
-            if (record) {
-              const updated = { ...record, googleEmail: phase.google.email };
-              await cacheKey(scope, updated);
-              await escrowRef.current?.write(updated).catch(() => {});
-            }
-            await open(phase.google);
-          }}
-        />
-      );
-    case 'recovery':
-      return (
-        <RecoveryKeyScreen
-          error={phase.error}
+        <UnlockPasscodeScreen
+          cloud
           busy={phase.busy}
-          canRetry={phase.canRetry}
-          onRetry={() => void open(phase.google)}
-          onSubmit={async (input) => {
-            setPhase({ ...phase, busy: true, error: null });
-            const record = await recordFromBackupKey(expoCipherSuite, input, phase.google.email);
-            if (!record) {
-              setPhase({ ...phase, busy: false, error: "That doesn't look like a backup key. It has 64 letters and numbers." });
-              return;
-            }
-            const remote = await store.find(cloudFileName(scope)).catch(() => null);
-            const remoteKeyId = remote?.appProperties.keyId;
-            if (remoteKeyId && remoteKeyId !== record.keyId) {
-              setPhase({ ...phase, busy: false, error: "That key doesn't match your Cloud copy." });
-              return;
-            }
-            await cacheKey(scope, record);
-            await escrowRef.current?.write(record).catch(() => {});
-            await open(phase.google);
-          }}
-          onStartOver={async () => {
-            setPhase({ name: 'working', message: 'Starting a fresh Cloud…' });
-            try {
-              const fresh = await createKeyRecord(expoCipherSuite, phase.google.email);
-              const remote = await store.find(cloudFileName(scope));
-              if (remote) await store.remove(remote.id);
-              await escrowRef.current?.write(fresh);
-              await cacheKey(scope, fresh);
-              await stateStore.save({ fileId: null, remoteSnapshotId: null, localHash: null, lastSyncedAt: null });
-              await open(phase.google);
-            } catch (caught) {
-              setPhase({ name: 'recovery', google: phase.google, error: cloudErrorMessage(caught), busy: false, canRetry: false });
-            }
-          }}
+          error={phase.error}
+          onUnlock={(passcode) => void unlockCloudKey(phase, passcode)}
+          onForgot={() =>
+            Alert.alert(
+              'Replace your Cloud copy?',
+              'Without its passcode, the Cloud copy can’t be opened. Replacing it deletes it and uploads this phone’s data under this phone’s passcode.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Keep data on this phone', onPress: () => void onChooseStorage('device') },
+                { text: 'Replace Cloud copy', style: 'destructive', onPress: () => void replaceCloudCopy(phase) },
+              ],
+            )
+          }
         />
       );
     case 'choose':
@@ -682,6 +568,7 @@ function CloudSession({
               setStatus('synced');
               setLastSyncedAt((await engineRef.current?.loadState())?.lastSyncedAt ?? null);
               setPhase({ name: 'ready', google: phase.google });
+              await retireLegacy();
             } catch (caught) {
               setPhase({ name: 'connect', error: cloudErrorMessage(caught), busy: false });
             }

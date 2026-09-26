@@ -6,7 +6,7 @@ import { CategoryGlyph } from '@/components/finance/category-glyph';
 import { MoneyText } from '@/components/finance/money-text';
 import { SavingsPlanCard } from '@/components/finance/savings-plan-card';
 import { useDockSpace } from '@/components/navigation/floating-dock';
-import { Button, Card, ErrorState, GradientCard, Skeleton, Stagger, Text } from '@/components/ui';
+import { Button, Card, ErrorState, GradientCard, Skeleton, SpotlightCard, Stagger, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 
 import { useCurrency, useSavingsPlans } from '../hooks';
@@ -52,15 +52,12 @@ export function GoalsScreen() {
           <ErrorState message="Couldn't load your savings plans. Nothing has been lost." onRetry={() => refetch()} />
         ) : plans.length === 0 ? (
           <Stagger index={1} style={styles.section}>
-            <GradientCard gradient={theme.gradients.finance} orbs="glow" contentStyle={styles.empty}>
-              <Text variant="displayMedium" style={styles.white}>
-                Give your money a purpose.
-              </Text>
-              <Text variant="bodyMedium" style={styles.whiteMuted}>
-                Create your first savings goal. Money you put toward it is set aside from what&apos;s available to spend.
-              </Text>
-              <Button label="Create a savings goal" icon="plus" variant="glass" size="sm" onPress={() => newPlan()} />
-            </GradientCard>
+            <SpotlightCard
+              title="Give your money a purpose."
+              body="Create your first savings goal. Money you put toward it is set aside from what's available to spend."
+              onPress={() => newPlan()}
+              accessibilityHint="Creates a savings goal"
+            />
             <Text variant="labelLarge" color="textSecondary">
               OR START FROM
             </Text>
@@ -78,8 +75,12 @@ export function GoalsScreen() {
         ) : (
           <>
             <Stagger index={1}>
-              <GradientCard gradient={theme.gradients.finance} orbs="drift" contentStyle={styles.summary}>
-                <Text variant="labelMedium" style={styles.whiteMuted}>
+              <GradientCard
+                gradient={[theme.colors.highlight, theme.colors.highlight, '#B9DA00']}
+                orbs={false}
+                contentStyle={styles.summary}
+              >
+                <Text variant="labelMedium" style={styles.inkMuted}>
                   SET ASIDE ACROSS {plans.length} {plans.length === 1 ? 'PLAN' : 'PLANS'}
                 </Text>
                 <MoneyText
@@ -87,9 +88,9 @@ export function GoalsScreen() {
                   currency={currency}
                   countUpKey="finance.savedTotal"
                   variant="displayMedium"
-                  style={styles.white}
+                  style={styles.ink}
                 />
-                <Text variant="caption" style={styles.whiteMuted}>
+                <Text variant="caption" style={styles.inkMuted}>
                   Kept apart from your available balance until you take it out.
                 </Text>
               </GradientCard>
@@ -143,11 +144,6 @@ const styles = StyleSheet.create({
   section: {
     gap: 12,
   },
-  empty: {
-    gap: 10,
-    alignItems: 'flex-start',
-    paddingVertical: 22,
-  },
   summary: {
     gap: 6,
   },
@@ -164,10 +160,11 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
   },
-  white: {
-    color: '#FFFFFF',
+  // Dark ink on the #CFF400 lime summary card.
+  ink: {
+    color: '#141512',
   },
-  whiteMuted: {
-    color: 'rgba(255,255,255,0.9)',
+  inkMuted: {
+    color: 'rgba(20, 21, 18, 0.72)',
   },
 });

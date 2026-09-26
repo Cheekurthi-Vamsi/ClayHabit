@@ -161,9 +161,10 @@ export async function openSnapshot(
   let bytes: Uint8Array;
   try {
     bytes = await suite.open(envelope.data, expected.key, associatedData(envelope.scope, envelope.keyId, 'data'));
-  } catch {
+  } catch (error) {
     // Right key (the fingerprint matched), so a failed tag means the bytes were altered.
-    throw new CloudError('tampered');
+    // The native error stays in the detail: a platform bug surfaces the same way.
+    throw new CloudError('tampered', error instanceof Error ? error.message : undefined);
   }
   if ((await suite.sha256Hex(bytes)) !== envelope.sha256) throw new CloudError('tampered', 'SHA-256 mismatch');
 

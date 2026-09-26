@@ -10,15 +10,15 @@ import { fontFamily, useAppTheme } from '@/theme';
 function FlowPill({ icon, amountMinor, currency, label }: { icon: IconName; amountMinor: number; currency: string; label: string }) {
   return (
     <View style={styles.pill}>
-      <Icon name={icon} size={13} color="#FFFFFF" />
+      <Icon name={icon} size={13} color={INK} />
       <MoneyText
         variant="labelLarge"
         amountMinor={amountMinor}
         currency={currency}
         compact
-        style={styles.white}
+        style={styles.ink}
       />
-      <Text variant="caption" style={styles.whiteMuted}>
+      <Text variant="caption" style={styles.inkMuted}>
         {label}
       </Text>
     </View>
@@ -34,14 +34,22 @@ interface BalanceHeroCardProps {
   currency: string;
 }
 
-/** The number the finance dashboard leads with: what's available right now. */
+/** Dark ink on the #CFF400 lime card. */
+const INK = '#141512';
+const INK_MUTED = 'rgba(20, 21, 18, 0.72)';
+
+/** The number the finance dashboard leads with: what's available right now, on the lime card. */
 export function BalanceHeroCard({ availableMinor, savedInPlansMinor, summary, monthKey, currency }: BalanceHeroCardProps) {
   const theme = useAppTheme();
   const month = formatMonthLabel(monthKey).split(' ')[0];
 
   return (
-    <GradientCard gradient={theme.gradients.finance} orbs="glow" contentStyle={styles.content}>
-      <Text variant="labelMedium" style={styles.whiteMuted}>
+    <GradientCard
+      gradient={[theme.colors.highlight, theme.colors.highlight, '#B9DA00']}
+      orbs={false}
+      contentStyle={styles.content}
+    >
+      <Text variant="labelMedium" style={styles.inkMuted}>
         TOTAL AVAILABLE
       </Text>
       <MoneyText
@@ -59,16 +67,16 @@ export function BalanceHeroCard({ availableMinor, savedInPlansMinor, summary, mo
       </View>
       <View style={styles.footer}>
         <View style={styles.footerItem}>
-          <Text variant="caption" style={styles.whiteMuted}>
+          <Text variant="caption" style={styles.inkMuted}>
             {`${month} started at `}
           </Text>
-          <MoneyText variant="caption" amountMinor={summary.startBalance} currency={currency} style={styles.whiteMuted} />
+          <MoneyText variant="caption" amountMinor={summary.startBalance} currency={currency} style={styles.inkMuted} />
         </View>
         {savedInPlansMinor > 0 ? (
           <View style={styles.footerItem}>
-            <Icon name="shield" size={12} color="rgba(255,255,255,0.9)" />
-            <MoneyText variant="caption" amountMinor={savedInPlansMinor} currency={currency} style={styles.white} />
-            <Text variant="caption" style={styles.whiteMuted}>
+            <Icon name="shield" size={12} color={INK} />
+            <MoneyText variant="caption" amountMinor={savedInPlansMinor} currency={currency} style={styles.ink} />
+            <Text variant="caption" style={styles.inkMuted}>
               {' in savings'}
             </Text>
           </View>
@@ -84,7 +92,7 @@ const styles = StyleSheet.create({
     paddingVertical: 22,
   },
   hero: {
-    color: '#FFFFFF',
+    color: INK,
     fontFamily: fontFamily.extraBold,
     fontSize: 46,
     lineHeight: 54,
@@ -102,7 +110,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(20, 21, 18, 0.08)',
   },
   footer: {
     flexDirection: 'row',
@@ -111,7 +119,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 6,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.35)',
+    borderTopColor: 'rgba(20, 21, 18, 0.18)',
     paddingTop: 10,
   },
   footerItem: {
@@ -119,10 +127,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
   },
-  white: {
-    color: '#FFFFFF',
+  ink: {
+    color: INK,
   },
-  whiteMuted: {
-    color: 'rgba(255,255,255,0.88)',
+  inkMuted: {
+    color: INK_MUTED,
   },
 });

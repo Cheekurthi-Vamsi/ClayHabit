@@ -1,0 +1,482 @@
+/* ---- Cartoon press (src/components/ui/cartoon-press.tsx) ------------------------------------
+   A 2px ink outline, a hard ink shadow `--depth` below, and a face that sinks into it when
+   pressed, with a light sweep across. The box never changes size: only the face translates. */
+
+.btn {
+  --fill: var(--color-highlight);
+  --on: var(--color-on-highlight);
+  --pressed: rgba(20, 21, 18, 0.08);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 22px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--on);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 var(--depth) 0 var(--ink);
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 110ms var(--ease-out),
+    box-shadow 110ms var(--ease-out),
+    background-color 160ms ease,
+    filter 160ms ease;
+  overflow: hidden;
+  isolation: isolate;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 64px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-160%) rotate(14deg);
+  pointer-events: none;
+  z-index: -1;
+}
+.btn:hover {
+  filter: brightness(1.03) saturate(1.05);
+  transform: translate3d(0, -1px, 0);
+  box-shadow: 0 calc(var(--depth) + 1px) 0 var(--ink);
+}
+.btn:hover::after {
+  animation: shine 900ms var(--ease-out);
+}
+.btn:active {
+  transform: translate3d(0, var(--depth), 0);
+  box-shadow: 0 0 0 var(--ink);
+  background-image: linear-gradient(var(--pressed), var(--pressed));
+}
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: none;
+  transform: none;
+  box-shadow: 0 var(--depth) 0 var(--ink);
+}
+.btn:disabled::after {
+  display: none;
+}
+.btn > svg {
+  flex: none;
+}
+
+.btn--lg { min-height: 56px; padding: 0 26px; font-size: 17px; }
+.btn--sm { min-height: 40px; padding: 0 16px; font-size: 14px; }
+.btn--full { width: 100%; }
+
+.btn--soft { --fill: var(--color-highlight-muted); --on: var(--color-text-primary); --pressed: var(--color-surface-pressed); }
+.btn--outline { --fill: var(--color-surface); --on: var(--color-text-primary); --pressed: var(--color-surface-pressed); }
+.btn--danger { --fill: var(--color-error); --on: #fff; --pressed: rgba(255, 255, 255, 0.16); }
+.btn--panel { --fill: var(--color-panel); --on: var(--color-on-panel); --pressed: rgba(255, 255, 255, 0.08); }
+.btn--ghost,
+.btn--glass {
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn--ghost { --fill: transparent; --on: var(--color-primary); }
+.btn--glass {
+  --fill: color-mix(in srgb, var(--color-highlight) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+.btn--ghost:hover,
+.btn--glass:hover {
+  box-shadow: none;
+  transform: none;
+  background: var(--color-surface-muted);
+}
+.btn--ghost:active,
+.btn--glass:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.btn__spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 800ms linear infinite;
+}
+
+/* Google's G on a white disc, as Google's sign-in branding asks. */
+.g-disc {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--ink);
+  flex: none;
+}
+
+/* ---- Icon button ----------------------------------------------------------------------- */
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  transition: transform 110ms var(--ease-out), box-shadow 110ms var(--ease-out), background-color 160ms;
+  flex: none;
+}
+.icon-btn:hover { background: var(--color-surface-muted); }
+.icon-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.icon-btn--ghost { border-color: transparent; box-shadow: none; background: transparent; }
+.icon-btn--ghost:active { transform: scale(0.94); }
+.icon-btn--lime { background: var(--color-highlight); color: var(--color-on-highlight); }
+.icon-btn--lime:hover { background: var(--color-highlight); filter: brightness(1.04); }
+.icon-btn--sm { width: 36px; height: 36px; }
+
+/* ---- Surfaces --------------------------------------------------------------------------- */
+
+.card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: 0 10px 30px -18px var(--color-shadow);
+}
+.card--pressable {
+  cursor: pointer;
+  text-align: left;
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms;
+}
+.card--pressable:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 18px 36px -20px var(--color-shadow);
+}
+.card--pressable:active { transform: translateY(0) scale(0.995); }
+
+.card--panel {
+  background: var(--color-panel);
+  color: var(--color-on-panel);
+  border-color: transparent;
+}
+.card--lime {
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+  border: 2px solid var(--ink);
+  box-shadow: 0 var(--depth) 0 var(--ink);
+}
+.card--aurora {
+  background: var(--gradient-aurora);
+  color: #fff;
+  border-color: transparent;
+}
+.card--muted {
+  background: var(--color-surface-muted);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chip--selected {
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+  border-color: var(--ink);
+}
+.chip--primary { background: var(--color-primary-muted); color: var(--color-primary); }
+.chip--panel { background: var(--color-panel-muted); color: var(--color-on-panel-muted); }
+button.chip { cursor: pointer; transition: background-color 160ms; }
+button.chip:hover:not(.chip--selected) { background: var(--color-surface-pressed); }
+
+/* ---- Segmented control ------------------------------------------------------------------ */
+
+.segmented {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+}
+.segmented button {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: background-color 180ms, color 180ms;
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/* ---- Inputs ----------------------------------------------------------------------------- */
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.input {
+  width: 100%;
+  height: 52px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 16px;
+  transition: border-color 160ms, box-shadow 160ms;
+}
+textarea.input {
+  height: auto;
+  min-height: 120px;
+  padding: 14px 18px;
+  resize: vertical;
+  line-height: 1.5;
+}
+select.input { appearance: none; cursor: pointer; }
+.input::placeholder { color: var(--color-text-tertiary); }
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-muted);
+}
+.input[aria-invalid='true'] { border-color: var(--color-error); }
+
+/* A reserved line for errors, so showing one never pushes the form down. */
+.field__error {
+  min-height: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-error);
+}
+
+.switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--color-surface-pressed);
+  border: 2px solid var(--ink);
+  transition: background-color 200ms;
+  flex: none;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--ink);
+  transition: transform 220ms var(--ease-spring);
+}
+.switch[aria-checked='true'] { background: var(--color-highlight); }
+.switch[aria-checked='true']::after { transform: translateX(22px); }
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 2px solid var(--ink);
+  background: var(--color-surface);
+  color: var(--color-on-highlight);
+  transition: background-color 160ms, transform 160ms var(--ease-spring);
+  flex: none;
+}
+.check[aria-checked='true'] { background: var(--color-highlight); }
+.check:active { transform: scale(0.9); }
+.check--round { border-radius: 50%; }
+
+/* ---- Progress --------------------------------------------------------------------------- */
+
+.bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: var(--color-highlight);
+  transform-origin: left center;
+  transform: scaleX(var(--value, 0));
+  transition: transform 700ms var(--ease-out);
+}
+
+/* ---- Dialog ----------------------------------------------------------------------------- */
+
+.dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-xl);
+  background: var(--color-background-elevated);
+  color: var(--color-text-primary);
+  box-shadow: 0 var(--depth) 0 var(--ink), 0 40px 80px -30px var(--color-shadow);
+  overflow: auto;
+}
+.dialog--wide { width: min(640px, calc(100vw - 32px)); }
+.dialog::backdrop {
+  background: var(--color-overlay);
+  backdrop-filter: blur(4px);
+}
+.dialog[open] {
+  animation: fade-up 260ms var(--ease-out);
+}
+.dialog__body {
+  display: grid;
+  gap: var(--space-lg);
+  padding: var(--space-xxl);
+}
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+/* ---- Toasts ----------------------------------------------------------------------------- */
+
+.toasts {
+  position: fixed;
+  z-index: 60;
+  right: 20px;
+  bottom: 20px;
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 380px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-panel);
+  color: var(--color-on-panel);
+  border: 2px solid var(--ink);
+  box-shadow: 0 var(--depth) 0 var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  animation: fade-up 280ms var(--ease-out);
+}
+
+/* ---- Misc ------------------------------------------------------------------------------- */
+
+.skeleton {
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-surface-muted), var(--color-surface-pressed), var(--color-surface-muted));
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+}
+@keyframes skeleton {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+.wordmark {
+  /* The same face, weight and spacing as the dashboard's "here’s what’s on today." */
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+.wordmark b {
+  font-weight: 500;
+  color: var(--color-primary);
+}
+/* The app bar's wordmark: the full name in one colour (white on the dark theme). */
+.wordmark--mono,
+.wordmark--mono b {
+  color: var(--color-text-primary);
+}
+:root[data-theme='dark'] .wordmark--mono,
+:root[data-theme='dark'] .wordmark--mono b {
+  color: #ffffff;
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  border: 0;
+  margin: 0;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--color-primary-muted);
+  border-top-color: var(--color-primary);
+  animation: spin 900ms linear infinite;
+}
+
+/* ---- Habit glyphs and the contribution grid (ports of the phone's) -------------------------- */
+
+.habit-glyph {
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+}
+.habit-icon {
+  display: inline-block;
+  flex: none;
+}
+.habit-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.heatmap-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+}

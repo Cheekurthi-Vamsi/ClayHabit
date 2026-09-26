@@ -55,11 +55,16 @@ export function greetingForHour(hour: number): string {
   return 'Good night';
 }
 
-export function formatTime12h(time: string | null): string | null {
+/**
+ * An "HH:mm" time for display: "9:05 PM", or "21:05" when the person chose
+ * the 24-hour clock (Settings, or the switch in the time picker).
+ */
+export function formatTime12h(time: string | null, use24Hour: boolean = clockPreference()): string | null {
   if (!time) return null;
   const [hourStr, minuteStr] = time.split(':');
   const hour = Number(hourStr);
   const minute = Number(minuteStr);
+  if (use24Hour) return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   const period = hour >= 12 ? 'PM' : 'AM';
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
   return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
@@ -90,4 +95,16 @@ export function getMonthGridDates(year: number, monthIndex: number): string[] {
     cursor.setDate(cursor.getDate() + 1);
   }
   return dates;
+}
+
+let clockPreference: () => boolean = () => false;
+
+/** Wired up by the settings store, so this file stays free of app state for its tests. */
+export function setClockPreferenceSource(source: () => boolean): void {
+  clockPreference = source;
+}
+
+/** "HH:mm" from a Date's local time. */
+export function toTimeString(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }

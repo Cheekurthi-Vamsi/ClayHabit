@@ -1,10 +1,21 @@
 import { useEffect } from 'react';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 import { AppState } from 'react-native';
 
 import { useAppLockStore } from '@/store/app-lock-store';
 import { useSettingsStore } from '@/store/settings-store';
 
 import { UnlockScreen } from './unlock-screen';
+
+/**
+ * With App Lock on, the app's screens stay private outside it too: Android
+ * blanks the recent-apps preview (FLAG_SECURE), and screenshots and screen
+ * recordings are blocked. Mounted only while App Lock is on.
+ */
+function PrivateScreens() {
+  usePreventScreenCapture('app-lock');
+  return null;
+}
 
 export function AppLockGate({ children }: { children: React.ReactNode }) {
   const appLockEnabled = useSettingsStore((state) => state.appLockEnabled);
@@ -22,9 +33,10 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
 
   const locked = appLockEnabled && !isSessionUnlocked;
 
-  if (locked) {
-    return <UnlockScreen />;
-  }
-
-  return <>{children}</>;
+  return (
+    <>
+      {appLockEnabled ? <PrivateScreens /> : null}
+      {locked ? <UnlockScreen /> : children}
+    </>
+  );
 }

@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { AuthScreen } from '../auth-screen';
+import { GetStartedScreen } from '../get-started-screen';
 import { StorageChoiceScreen } from '@/features/cloud/storage-choice-screen';
+import { useSettingsStore } from '@/store/settings-store';
 import { AppThemeProvider } from '@/theme';
 
 /* eslint-disable @typescript-eslint/no-require-imports -- jest.mock factories must require */
@@ -58,5 +60,31 @@ describe('welcome screens', () => {
     await fireEvent.press(screen.getByRole('radio', { name: /Save to my Google Drive/ }));
     await fireEvent.press(screen.getByRole('button', { name: 'Connect Google Drive' }));
     expect(onChoose).toHaveBeenLastCalledWith('cloud');
+  });
+
+  it('Get Started uses our button and continues on', async () => {
+    const onContinue = jest.fn();
+    await render(
+      <AppThemeProvider>
+        <GetStartedScreen onContinue={onContinue} />
+      </AppThemeProvider>,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Get Started' }));
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches between light and dark from the sign-in screen', async () => {
+    useSettingsStore.setState({ themePreference: 'light' });
+    await render(
+      <AppThemeProvider>
+        <AuthScreen />
+      </AppThemeProvider>,
+    );
+
+    expect(screen.getByRole('radio', { name: 'Light mode' }).props.accessibilityState.selected).toBe(true);
+    await fireEvent.press(screen.getByRole('radio', { name: 'Dark mode' }));
+    expect(useSettingsStore.getState().themePreference).toBe('dark');
+    expect(screen.getByRole('radio', { name: 'Dark mode' }).props.accessibilityState.selected).toBe(true);
   });
 });

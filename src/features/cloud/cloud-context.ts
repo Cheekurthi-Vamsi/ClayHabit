@@ -30,8 +30,6 @@ export interface CloudApi {
   conflict: RemoteSummary | null;
   syncNow(): Promise<void>;
   resolveConflict(prefer: 'local' | 'remote'): Promise<void>;
-  /** The account key, formatted for writing down. Null when there isn't one. */
-  revealBackupKey(): Promise<string | null>;
   /** Signs out of Google and returns to the Connect screen (e.g. to switch accounts). */
   switchGoogleAccount(): Promise<void>;
   /** Called before signing out of ClayHabbit: last sync, then forget Google on this phone. */
@@ -56,7 +54,6 @@ export function localOnlyCloud(
     conflict: null,
     syncNow: noop,
     resolveConflict: noop,
-    revealBackupKey: async () => null,
     switchGoogleAccount: noop,
     prepareSignOut: noop,
     ...overrides,

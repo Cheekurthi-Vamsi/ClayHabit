@@ -4,14 +4,15 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { DATABASE_NAME } from '@/data/db/migrate';
 import { getLastUser, rememberLastUser, resolveDatabaseForUser } from '@/lib/auth/account-database';
-import { clerkStorageModeRemote, StorageModeRemoteContext } from '@/lib/auth/clerk-storage-mode';
+import { clerkLegacyData, LegacyClerkDataContext } from '@/lib/auth/legacy-clerk-data';
 import { authEnabled } from '@/lib/auth/config';
-import { clerkKeyEscrow, KeyEscrowContext } from '@/lib/cloud/clerk-escrow';
 import { queryClient } from '@/lib/query-client';
+import { useSettingsStore } from '@/store/settings-store';
 import { useAppTheme } from '@/theme';
 
 import { AccountContext } from './account-context';
 import { AuthScreen } from './auth-screen';
+import { GetStartedScreen } from './get-started-screen';
 
 /** How long to wait for Clerk before falling back to the remembered session. */
 const OFFLINE_FALLBACK_MS = 4000;
@@ -33,9 +34,8 @@ function ClerkGate({ children }: { children: RenderApp }) {
   const [timedOut, setTimedOut] = useState(false);
   const [lastUser, setLastUser] = useState<string | null | undefined>(undefined);
   const [database, setDatabase] = useState<{ userId: string; name: string } | null>(null);
-  // The Cloud key is kept with the account, so the Cloud can find it on any phone.
-  const escrow = useMemo(() => (user ? clerkKeyEscrow(user) : null), [user]);
-  const storageRemote = useMemo(() => (user ? clerkStorageModeRemote(user) : null), [user]);
+  // Clerk is sign-in only; this just lets older data kept in the account be cleaned up.
+  const legacy = useMemo(() => (user ? clerkLegacyData(user) : null), [user]);
 
   useEffect(() => {
     getLastUser().then(setLastUser, () => setLastUser(null));
@@ -79,7 +79,7 @@ function ClerkGate({ children }: { children: RenderApp }) {
   }, [activeUserId]);
 
   if (activeUserId === undefined) return <AuthLoading />;
-  if (activeUserId === null) return <AuthScreen />;
+  if (activeUserId === null) return <SignedOut />;
   if (!database || database.userId !== activeUserId) return <AuthLoading />;
 
   return (
@@ -93,11 +93,24 @@ function ClerkGate({ children }: { children: RenderApp }) {
         offline,
       }}
     >
-      <KeyEscrowContext.Provider value={escrow}>
-        <StorageModeRemoteContext.Provider value={storageRemote}>{children(database.name)}</StorageModeRemoteContext.Provider>
-      </KeyEscrowContext.Provider>
+      <LegacyClerkDataContext.Provider value={legacy}>{children(database.name)}</LegacyClerkDataContext.Provider>
     </AccountContext.Provider>
   );
+}
+
+/** Get Started once per install, then the sign-in screen. */
+function SignedOut() {
+  const seen = useSettingsStore((state) => state.hasSeenGetStarted);
+  const setSeen = useSettingsStore((state) => state.setHasSeenGetStarted);
+  return seen ? <AuthScreen /> : <GetStartedScreen onContinue={() => setSeen(true)} />;
+}
+
+/** Without sign-in configured, Get Started still greets a new install before the app opens. */
+function LocalGate({ children }: { children: RenderApp }) {
+  const seen = useSettingsStore((state) => state.hasSeenGetStarted);
+  const setSeen = useSettingsStore((state) => state.setHasSeenGetStarted);
+  if (!seen) return <GetStartedScreen onContinue={() => setSeen(true)} />;
+  return <>{children(DATABASE_NAME)}</>;
 }
 
 /**
@@ -106,7 +119,7 @@ function ClerkGate({ children }: { children: RenderApp }) {
  * person sees the sign-in screen instead of the app.
  */
 export function AuthGate({ children }: { children: RenderApp }) {
-  if (!authEnabled) return <>{children(DATABASE_NAME)}</>;
+  if (!authEnabled) return <LocalGate>{children}</LocalGate>;
   return <ClerkGate>{children}</ClerkGate>;
 }
 

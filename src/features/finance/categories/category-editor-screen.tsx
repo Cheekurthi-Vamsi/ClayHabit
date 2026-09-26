@@ -144,7 +144,7 @@ function Editor({ existing, kind }: { existing?: FinCategory; kind: CategoryKind
           label={existing ? 'Save changes' : 'Add category'}
           icon="check"
           fullWidth
-          gradient={theme.gradients.finance}
+         
           disabled={!name.trim()}
           loading={create.isPending || update.isPending}
           onPress={save}

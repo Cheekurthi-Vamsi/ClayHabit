@@ -64,3 +64,27 @@ export function useWeekActivity() {
 
   return { ...query, values, todayIndex };
 }
+
+/**
+ * This week's total so far against the same stretch of last week (Monday up
+ * to the same weekday), so a Tuesday isn't compared with a whole week.
+ */
+export function useWeekComparison() {
+  const today = todayIso();
+  const week = useWeekActivity();
+  const lastMonday = addDaysIso(startOfWeekIso(today), -7);
+  const lastSameDay = addDaysIso(today, -7);
+  const last = useActivity(lastMonday, lastSameDay);
+
+  const total = week.values.reduce((sum, value) => sum + value, 0);
+  const lastTotal = Object.values(last.data?.total ?? {}).reduce((sum, value) => sum + value, 0);
+
+  return {
+    values: week.values,
+    todayIndex: week.todayIndex,
+    total,
+    /** Change vs the same days last week; null until last week has loaded. */
+    change: last.data ? total - lastTotal : null,
+    isLoading: week.isLoading,
+  };
+}

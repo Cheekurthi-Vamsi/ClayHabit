@@ -2,13 +2,21 @@ import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
-import { Button, Chip, Text } from '@/components/ui';
+import { AppleCalendarPicker, Button, Chip, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
-import { todayIso } from '@/utils/date';
+import { combineDateAndTime, formatTime12h, todayIso, toTimeString } from '@/utils/date';
 
 import { useCreateEvent } from './hooks';
 
 const COLOR_OPTIONS = ['primary', 'secondary', 'accentMint', 'warning', 'error'] as const;
+const COLOR_LABELS: Record<(typeof COLOR_OPTIONS)[number], string> = {
+  primary: 'Navy',
+  secondary: 'Steel',
+  accentMint: 'Teal',
+  warning: 'Lime',
+  error: 'Red',
+};
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function NewEventForm() {
   const theme = useAppTheme();
@@ -17,10 +25,15 @@ export function NewEventForm() {
   const createEvent = useCreateEvent();
 
   const [title, setTitle] = useState('');
-  const [startTime, setStartTime] = useState('');
+  const [startTime, setStartTime] = useState<string | null>(null);
+  const [pickingTime, setPickingTime] = useState(false);
   const [color, setColor] = useState<(typeof COLOR_OPTIONS)[number]>('primary');
 
-  const date = params.date ?? todayIso();
+  // The date can arrive in a deep link, so only a real YYYY-MM-DD is trusted.
+  const date =
+    params.date && ISO_DATE.test(params.date) && !Number.isNaN(new Date(`${params.date}T00:00:00`).getTime())
+      ? params.date
+      : todayIso();
   const canSubmit = title.trim().length > 0 && !createEvent.isPending;
 
   const handleSubmit = () => {
@@ -29,7 +42,7 @@ export function NewEventForm() {
       {
         title,
         date,
-        startTime: startTime || null,
+        startTime,
         color: theme.colors[color],
       },
       { onSuccess: () => router.back() },
@@ -58,17 +71,24 @@ export function NewEventForm() {
 
         <View style={{ gap: theme.spacing.sm }}>
           <Text variant="labelLarge" color="textSecondary">
-            {date.toUpperCase()} · TIME (OPTIONAL, HH:MM)
+            {new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()} · TIME
           </Text>
-          <TextInput
-            value={startTime}
-            onChangeText={setStartTime}
-            placeholder="09:30"
-            placeholderTextColor={theme.colors.textTertiary}
-            style={[
-              styles.input,
-              { color: theme.colors.textPrimary, backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.radii.md },
-            ]}
+          <View style={styles.chipRow}>
+            <Chip label="All day" selected={startTime === null} onPress={() => setStartTime(null)} />
+            <Chip
+              label={startTime ? (formatTime12h(startTime) ?? startTime) : 'Pick a time…'}
+              icon="clock"
+              selected={startTime !== null}
+              onPress={() => setPickingTime(true)}
+            />
+          </View>
+          <AppleCalendarPicker
+            visible={pickingTime}
+            mode="time"
+            title="Starts at"
+            initialValue={combineDateAndTime(date, startTime ?? '09:00')}
+            onClose={() => setPickingTime(false)}
+            onConfirm={(value) => setStartTime(toTimeString(value))}
           />
         </View>
 
@@ -78,7 +98,7 @@ export function NewEventForm() {
           </Text>
           <View style={styles.chipRow}>
             {COLOR_OPTIONS.map((option) => (
-              <Chip key={option} label={option} selected={color === option} onPress={() => setColor(option)} />
+              <Chip key={option} label={COLOR_LABELS[option]} selected={color === option} onPress={() => setColor(option)} />
             ))}
           </View>
         </View>

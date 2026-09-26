@@ -82,7 +82,7 @@ function OptionCard({ option, selected, onSelect }: { option: Option; selected: 
               { backgroundColor: selected ? theme.colors.primary : theme.colors.primaryMuted },
             ]}
           >
-            <Icon name={option.icon} size={20} color={selected ? '#FFFFFF' : theme.colors.primary} />
+            <Icon name={option.icon} size={20} color={selected ? theme.colors.onPrimary : theme.colors.primary} />
           </View>
           <View style={styles.flex}>
             <View style={styles.titleRow}>

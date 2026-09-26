@@ -6,7 +6,7 @@ module.exports = [
   ...expoConfig,
   eslintConfigPrettier,
   {
-    ignores: ['dist/*', '.expo/*', 'node_modules/*'],
+    ignores: ['dist/*', '.expo/*', 'node_modules/*', 'web/*'],
   },
   {
     rules: {

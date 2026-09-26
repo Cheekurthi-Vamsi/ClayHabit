@@ -1,0 +1,404 @@
+/* Dashboard: the phone's (src/features/dashboard), laid out wide. */
+
+.dash {
+  gap: 20px;
+}
+.dash-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 30px -20px var(--color-shadow);
+}
+button.dash-card {
+  cursor: pointer;
+  transition: transform 180ms var(--ease-out), border-color 180ms, box-shadow 180ms;
+}
+button.dash-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 18px 36px -22px var(--color-shadow);
+}
+.dash-card-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The light hero sheet (heroSoft gradient), rounded like the phone's. */
+.dash-hero {
+  display: grid;
+  gap: 24px;
+  padding: clamp(20px, 3vw, 36px);
+  border-radius: clamp(28px, 3vw, 40px);
+  background: var(--gradient-hero-soft);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 30px 60px -44px var(--color-panel);
+}
+.dash-hero__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.dash-hero__text {
+  display: grid;
+  gap: 8px;
+}
+.dash-hero__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(38px, 4.4vw, 60px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+.dash-hero__title em {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+.dash-hero__cards {
+  display: grid;
+  grid-template-columns: 220px 200px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.dash-hero__panel {
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .dash-hero__cards { grid-template-columns: 1fr 1fr; }
+  .dash-hero__panel { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .dash-hero__cards { grid-template-columns: 1fr; }
+}
+
+/* Streak: the lime card with the last four weeks as a small ink grid. */
+.dash-streak {
+  display: grid;
+  gap: 10px;
+  align-content: space-between;
+  min-height: 210px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--color-highlight), var(--color-highlight) 55%, #b9da00);
+  color: #141512;
+  border: 2px solid var(--ink);
+  box-shadow: 0 var(--depth) 0 var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 150ms var(--ease-out), box-shadow 150ms;
+}
+.dash-streak:hover { transform: translateY(-2px); box-shadow: 0 calc(var(--depth) + 2px) 0 var(--ink); }
+.dash-streak:active { transform: translateY(var(--depth)); box-shadow: 0 0 0 var(--ink); }
+.dash-streak .dash-card-label { color: rgba(20, 21, 18, 0.74); }
+.dash-streak__number {
+  display: block;
+  font-size: 50px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}
+.dash-streak__grid {
+  display: grid;
+  gap: 4px;
+}
+.dash-streak__row {
+  display: grid;
+  grid-template-columns: repeat(7, 16px);
+  gap: 4px;
+}
+.dash-streak__cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+/* Focus: the dark card with the default length in lime. */
+.dash-focus {
+  display: grid;
+  gap: 10px;
+  align-content: space-between;
+  min-height: 210px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--color-panel), var(--color-panel-muted));
+  color: var(--color-on-panel);
+}
+.dash-focus__clock {
+  display: block;
+  font-size: 36px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-highlight);
+}
+.dash-focus .btn--glass { --on: var(--color-on-highlight); }
+
+/* Today's target: the dark panel with the hatched lime track. */
+.dash-panel {
+  height: 100%;
+  min-height: 210px;
+  display: grid;
+  align-content: space-between;
+  gap: 16px;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--color-panel);
+  color: var(--color-on-panel);
+}
+.dash-panel__big {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.dash-target {
+  --track: 52px;
+  position: relative;
+  height: var(--track);
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-on-panel-muted) 22%, transparent) 0 3px, transparent 3px 9px),
+    var(--color-panel-muted);
+  overflow: hidden;
+}
+.dash-target__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  /* Grows from the knob's width to the full track; only this absolutely placed fill changes. */
+  width: calc(var(--track) + (100% - var(--track)) * var(--ratio, 0));
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-right: 5px;
+  border-radius: 999px;
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+  transition: width 900ms var(--ease-out);
+}
+.dash-target__label {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dash-target__knob {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-panel);
+  color: var(--color-highlight);
+  font-weight: 800;
+  font-size: 13px;
+  flex: none;
+}
+.dash-target-empty {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--color-on-panel-muted);
+  color: var(--color-on-panel);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 20px;
+  /* Both columns end together: the Today card grows to meet the taller side, leaving no gap. */
+  align-items: stretch;
+}
+.dash-grid > .stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.dash-fill {
+  flex: 1;
+}
+@media (max-width: 1100px) {
+  .dash-grid { grid-template-columns: 1fr; }
+}
+
+/* The week as seven columns: past days hatched, today ink with a lime cap, days ahead dashed. */
+.week-cols {
+  height: 110px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+.week-cols__col {
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.week-cols__bar {
+  width: 100%;
+  min-height: 20px;
+  border-radius: 12px;
+  transition: height 700ms var(--ease-out);
+}
+.week-cols__bar--past {
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-primary) 22%, transparent) 0 2.5px, transparent 2.5px 7px),
+    var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+}
+.week-cols__bar--today {
+  background: linear-gradient(var(--color-highlight) 0 20px, var(--color-panel) 20px);
+}
+:root[data-theme='dark'] .week-cols__bar--today {
+  background: linear-gradient(var(--color-highlight) 0 20px, var(--color-panel-muted) 20px);
+}
+.week-cols__bar--future {
+  border: 1.5px dashed var(--color-border-strong);
+}
+.week-cols__labels {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+.week-cols__labels span {
+  padding: 3px 0;
+  border-radius: 999px;
+}
+.week-cols__label--today {
+  background: var(--color-panel);
+  color: var(--color-highlight);
+}
+
+.dash-next {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+.dash-next__accent {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: var(--gradient-primary);
+  flex: none;
+}
+.dash-next__title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.dash-note {
+  display: flex;
+  gap: 14px;
+}
+.dash-note__icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--gradient-lavender-pink);
+  color: #fff;
+  flex: none;
+}
+.dash-note__title {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-note__preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Money and Focus: two cards of equal height with figures, one action line and a heatmap. */
+.dash-duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .dash-duo { grid-template-columns: 1fr; }
+}
+.dash-duo__card {
+  display: grid;
+  /* A fixed row for the budget/button line, so both cards line up row by row. */
+  grid-template-rows: auto auto 64px 1fr;
+  gap: 16px;
+}
+.dash-duo__icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-secondary-muted);
+  color: var(--color-secondary);
+}
+.dash-duo__icon--money {
+  background: var(--color-finance-muted);
+  color: var(--color-finance-text);
+}
+.dash-duo__figures {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 14px;
+}
+.dash-duo__value {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-duo__value--sm {
+  font-size: 19px;
+}
+.dash-duo__unit {
+  font-size: 15px;
+  margin-left: 5px;
+  font-weight: 700;
+}
+.dash-duo__line {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+.dash-duo__grid {
+  display: grid;
+  align-content: end;
+  gap: 8px;
+}
+@media (max-width: 520px) {
+  .dash-duo__figures { grid-template-columns: 1fr 1fr; }
+}

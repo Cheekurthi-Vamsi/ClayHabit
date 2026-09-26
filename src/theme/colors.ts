@@ -19,6 +19,18 @@ export interface ThemeColors {
   secondary: string;
   secondaryMuted: string;
 
+  /** Lime signal colour (#CFF400): every button, the active nav pill, progress, hero cards. Never text on light. */
+  highlight: string;
+  /** Pale lime: soft buttons and selected surfaces. */
+  highlightMuted: string;
+  onHighlight: string;
+  /** The dark "ink" panel that anchors a screen (dashboard targets, nav bar). */
+  panel: string;
+  /** Tiles sitting on the panel. */
+  panelMuted: string;
+  onPanel: string;
+  onPanelMuted: string;
+
   accentLavender: string;
   accentPurple: string;
   accentBlue: string;
@@ -49,142 +61,158 @@ export interface ThemeColors {
 export type ColorToken = keyof ThemeColors;
 
 /*
- * ClayHabbit palette, taken from the brand art in images/: the logo's violet → blue,
- * the illustration's mint leaves and peach sun, and deep navy ink for text.
- * Pink is now only a small accent (habit colour), not the signature.
+ * ClayHabbit palette (images/Colors.jpg): 001D39 · 0A4174 · 49769F · 4E8EA2 · 6EA2B3 · 7BBDE8 · BDD8E9,
+ * plus the lime #CFF400 and the charcoal of images/Dashboard design 3.jpg. Everything else here is a tint or
+ * shade of those. The one exception is `error`: a muted red, because a failure has to read as one.
  */
 export const lightColors: ThemeColors = {
-  background: '#F7F8FC',
+  background: '#F1F5F8',
   backgroundElevated: '#FFFFFF',
   surface: '#FFFFFF',
-  surfaceMuted: '#F0F2F9',
-  surfacePressed: '#E5E8F3',
-  border: '#E6E8F1',
-  borderStrong: '#CDD2E2',
+  surfaceMuted: '#E6EEF4',
+  surfacePressed: '#D9E5EE',
+  border: '#DCE6EE',
+  borderStrong: '#BDD8E9',
 
-  // Navy ink, not grey-black: matches the headline colour in the brand art.
-  textPrimary: '#1B2140',
-  textSecondary: '#5B6380',
-  textTertiary: '#8C93AD',
+  textPrimary: '#001D39',
+  textSecondary: '#426D94',
+  textTertiary: '#6A8BA3',
   textInverse: '#FFFFFF',
 
-  primary: '#5B4FE8',
-  primaryMuted: '#ECEAFF',
+  primary: '#0A4174',
+  primaryMuted: '#DDEAF4',
   onPrimary: '#FFFFFF',
 
-  secondary: '#2F7BE8',
-  secondaryMuted: '#E4EFFD',
+  secondary: '#49769F',
+  secondaryMuted: '#E3EEF6',
 
-  accentLavender: '#9C8CF8',
-  accentPurple: '#7258F5',
-  accentBlue: '#3E7BEA',
-  accentPink: '#E86F92',
-  accentMint: '#27B893',
-  accentCyan: '#1B9ED0',
+  highlight: '#CFF400',
+  highlightMuted: '#EFFBB3',
+  onHighlight: '#141512',
+  panel: '#001D39',
+  panelMuted: '#0A2F53',
+  onPanel: '#FFFFFF',
+  onPanelMuted: '#BDD8E9',
 
-  finance: '#12A38C',
-  financeMuted: '#E3F6F2',
-  financeText: '#0A7A70',
-  chartIncome: '#1BAF7A',
-  chartExpense: '#EB6834',
+  accentLavender: '#7BBDE8',
+  accentPurple: '#0A4174',
+  accentBlue: '#49769F',
+  accentPink: '#6EA2B3',
+  accentMint: '#4E8EA2',
+  accentCyan: '#7BBDE8',
 
-  success: '#1FA97A',
-  successMuted: '#E1F6EE',
-  warning: '#E08A12',
-  warningMuted: '#FEF1DC',
-  error: '#E0445E',
-  errorMuted: '#FCE5E9',
+  finance: '#4E8EA2',
+  financeMuted: '#E1EEF2',
+  financeText: '#2F6F82',
+  chartIncome: '#4E8EA2',
+  chartExpense: '#001D39',
 
-  overlay: 'rgba(27, 33, 64, 0.38)',
-  shadow: 'rgba(40, 46, 110, 0.10)',
+  success: '#2F6F82',
+  successMuted: '#E1EEF2',
+  warning: '#6A8A1E',
+  warningMuted: '#F2F9D2',
+  error: '#C2413F',
+  errorMuted: '#F8E4E3',
+
+  overlay: 'rgba(0, 29, 57, 0.4)',
+  shadow: 'rgba(0, 29, 57, 0.10)',
 };
 
+// Dark mode is Dashboard design 2/3's charcoal, with the palette's light blues for ink and accents.
 export const darkColors: ThemeColors = {
-  background: '#0D1020',
-  backgroundElevated: '#141830',
-  surface: '#181D36',
-  surfaceMuted: '#1F2542',
-  surfacePressed: '#29304F',
-  border: '#262C4A',
-  borderStrong: '#363E63',
+  background: '#0E1012',
+  backgroundElevated: '#15171A',
+  surface: '#18191C',
+  surfaceMuted: '#202226',
+  surfacePressed: '#2A2C31',
+  border: '#26282D',
+  borderStrong: '#363940',
 
-  textPrimary: '#F2F3FA',
-  textSecondary: '#A7ADC8',
-  textTertiary: '#737A99',
-  textInverse: '#1B2140',
+  textPrimary: '#F3F7FA',
+  textSecondary: '#A9C4D6',
+  textTertiary: '#6F8797',
+  textInverse: '#001D39',
 
-  primary: '#8C82FF',
-  primaryMuted: '#25234D',
-  onPrimary: '#FFFFFF',
+  primary: '#7BBDE8',
+  primaryMuted: '#10263A',
+  onPrimary: '#001D39',
 
-  secondary: '#5FA2F5',
-  secondaryMuted: '#132A48',
+  secondary: '#6EA2B3',
+  secondaryMuted: '#132A33',
 
-  accentLavender: '#B4A8FF',
-  accentPurple: '#9A88FF',
-  accentBlue: '#6FA3F7',
-  accentPink: '#F28FAE',
-  accentMint: '#4FD3B0',
-  accentCyan: '#4CC2EA',
+  highlight: '#CFF400',
+  highlightMuted: '#2B3305',
+  onHighlight: '#141512',
+  panel: '#161719',
+  panelMuted: '#232529',
+  onPanel: '#FFFFFF',
+  onPanelMuted: '#A9C4D6',
 
-  finance: '#3CCFB6',
-  financeMuted: '#0F2E2A',
-  financeText: '#4FD1C0',
-  chartIncome: '#199E70',
-  chartExpense: '#D95926',
+  accentLavender: '#BDD8E9',
+  accentPurple: '#7BBDE8',
+  accentBlue: '#49769F',
+  accentPink: '#6EA2B3',
+  accentMint: '#4E8EA2',
+  accentCyan: '#7BBDE8',
 
-  success: '#3FD19E',
-  successMuted: '#0F3326',
-  warning: '#FFB54A',
-  warningMuted: '#3A2C10',
-  error: '#FF6F86',
-  errorMuted: '#3B1620',
+  finance: '#6EA2B3',
+  financeMuted: '#13282F',
+  financeText: '#7BBDE8',
+  chartIncome: '#6EA2B3',
+  chartExpense: '#CFF400',
+
+  success: '#6EA2B3',
+  successMuted: '#13282F',
+  warning: '#CFF400',
+  warningMuted: '#2A3012',
+  error: '#F07C78',
+  errorMuted: '#3A1A19',
 
   overlay: 'rgba(0, 0, 0, 0.6)',
-  shadow: 'rgba(0, 0, 0, 0.45)',
+  shadow: 'rgba(0, 0, 0, 0.5)',
 };
 
 export type GradientStops = readonly [string, string, ...string[]];
 
 export interface ThemeGradients {
-  /** Purple → blue. Primary CTAs, progress fills, active nav indicator. */
+  /** Navy → steel. Primary CTAs, progress fills. */
   primary: GradientStops;
-  /** Blue → cyan. Focus-related surfaces. */
+  /** Steel → teal. Focus-related surfaces. */
   secondary: GradientStops;
-  /** Clay: burnt orange → terracotta. Warm call-to-action cards (habits, notes). */
+  /** Midnight → navy. Warm-slot call-to-action cards (habits, notes); the name is historical. */
   lavenderPink: GradientStops;
-  /** Mint → ocean. Completion and money-in. */
+  /** Teal → navy. Completion and money-in. */
   mintCyan: GradientStops;
-  /** Amber → ember. Streaks (fire). */
+  /** Navy → teal. Streaks; the name is historical. */
   pinkPurple: GradientStops;
-  /** Violet → indigo → blue, from the logo. The app's signature gradient. */
+  /** Midnight → navy → steel. The app's signature gradient. */
   aurora: GradientStops;
-  /** Barely-there blue/purple wash for large hero surfaces with dark text on top. */
+  /** Barely-there ice wash for large hero surfaces with dark text on top. */
   heroSoft: GradientStops;
-  /** Mint → teal → blue. The finance environment's signature (white text clears 3:1 on every stop). */
+  /** Teal → navy. The finance environment's signature. */
   finance: GradientStops;
 }
 
-// Every stop is deep enough for white text on top (≥ 3:1 for the bold/large text used on cards).
+// Every stop is deep enough for white text on top (>= 3:1 for the bold/large text used on cards).
 export const gradients: { light: ThemeGradients; dark: ThemeGradients } = {
   light: {
-    primary: ['#6F57F2', '#3A74E6'],
-    secondary: ['#3A6FE0', '#1685BF'],
-    lavenderPink: ['#DB7440', '#C24E43'],
-    mintCyan: ['#119C80', '#1780BD'],
-    pinkPurple: ['#D86F1B', '#CF4638'],
-    aurora: ['#7258F5', '#5561EC', '#3A74E6'],
-    heroSoft: ['#EEEFFF', '#F2F0FF', '#E8F3FE'],
-    finance: ['#12A38C', '#0F8C84', '#2B6FD0'],
+    primary: ['#0A4174', '#49769F'],
+    secondary: ['#49769F', '#2F6F82'],
+    lavenderPink: ['#001D39', '#0A4174'],
+    mintCyan: ['#2F6F82', '#0A4174'],
+    pinkPurple: ['#0A4174', '#2F6F82'],
+    aurora: ['#001D39', '#0A4174', '#49769F'],
+    heroSoft: ['#DDEAF4', '#EAF2F8', '#F7FAFC'],
+    finance: ['#4E8EA2', '#2F6F82', '#0A4174'],
   },
   dark: {
-    primary: ['#6450E6', '#2F66D6'],
-    secondary: ['#2F5FCC', '#12739F'],
-    lavenderPink: ['#C0612F', '#A83F37'],
-    mintCyan: ['#0E826B', '#136B9E'],
-    pinkPurple: ['#C9681A', '#B23A2E'],
-    aurora: ['#6450E6', '#4A55D8', '#2F66D6'],
-    heroSoft: ['#1A1C3A', '#1D1B3B', '#132640'],
-    finance: ['#0E8272', '#0B6E69', '#2459A8'],
+    primary: ['#0A4174', '#2F6F82'],
+    secondary: ['#2F6F82', '#0A4174'],
+    lavenderPink: ['#0A2F53', '#001D39'],
+    mintCyan: ['#2F6F82', '#0A4174'],
+    pinkPurple: ['#0A4174', '#2F6F82'],
+    aurora: ['#001D39', '#0A4174', '#2F6F82'],
+    heroSoft: ['#2A2C31', '#24262A', '#1E2024'],
+    finance: ['#2F6F82', '#0A4174', '#001D39'],
   },
 };

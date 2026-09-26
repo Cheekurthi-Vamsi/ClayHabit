@@ -132,7 +132,7 @@ function BudgetEditor({
           label={existing ? 'Save budget' : 'Set budget'}
           icon="check"
           fullWidth
-          gradient={theme.gradients.finance}
+         
           disabled={!target || amountMinor <= 0}
           loading={setBudget.isPending}
           onPress={save}

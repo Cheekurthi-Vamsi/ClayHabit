@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { Button, Chip, Text } from '@/components/ui';
+import { AppleCalendarPicker, Button, Chip, Text } from '@/components/ui';
 import type { TaskPriority } from '@/domain/entities/task';
 import { notificationsUnsupported } from '@/lib/notifications/expo-go-guard';
 import { useAppTheme } from '@/theme';
-import { addDaysIso, formatTime12h, todayIso } from '@/utils/date';
+import { addDaysIso, combineDateAndTime, formatTime12h, todayIso, toTimeString } from '@/utils/date';
 
 import { currentTimeHHmm } from '../dashboard/progress';
 import { useCreateTask, useSetReminder } from './hooks';
@@ -53,10 +53,12 @@ export function NewTaskForm() {
     wantsReminder ? (firstFutureToday ?? TIME_PRESETS[0]) : null,
   );
   const [remind, setRemind] = useState(wantsReminder);
+  const [pickingTime, setPickingTime] = useState(false);
 
   const dueDate = schedule === 'today' ? todayIso() : schedule === 'tomorrow' ? addDaysIso(todayIso(), 1) : null;
   // Only offer times that haven't already passed if the task is for today.
   const timeOptions = schedule === 'today' ? TIME_PRESETS.filter((preset) => preset > now) : TIME_PRESETS;
+  const customTime = time !== null && !TIME_PRESETS.includes(time);
   const canRemind = Boolean(dueDate && time);
   const submitting = createTask.isPending || setReminder.isPending;
   const canSubmit = title.trim().length > 0 && !submitting;
@@ -166,7 +168,22 @@ export function NewTaskForm() {
                   onPress={() => setTime(preset)}
                 />
               ))}
+              <Chip
+                label={customTime ? (formatTime12h(time) ?? 'Custom') : 'Custom time…'}
+                icon="clock"
+                selected={customTime}
+                onPress={() => setPickingTime(true)}
+              />
             </View>
+            <AppleCalendarPicker
+              visible={pickingTime}
+              mode="time"
+              title="Pick a time"
+              initialValue={time ? combineDateAndTime(dueDate, time) : undefined}
+              minimum={schedule === 'today' ? new Date() : undefined}
+              onClose={() => setPickingTime(false)}
+              onConfirm={(value) => setTime(toTimeString(value))}
+            />
           </Field>
         ) : null}
 

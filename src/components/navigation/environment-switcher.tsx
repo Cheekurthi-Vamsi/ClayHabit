@@ -1,13 +1,12 @@
 import { useCallback, useState } from 'react';
 import * as Haptics from '@/lib/haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Icon, Text, type IconName } from '@/components/ui';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
-import { useAppTheme, type GradientStops } from '@/theme';
+import { useAppTheme } from '@/theme';
 
 export type AppEnvironment = 'productivity' | 'finance';
 
@@ -51,7 +50,7 @@ function Segment({
   onPress: () => void;
 }) {
   const theme = useAppTheme();
-  // Cross-fade a white (on-indicator) copy over a muted copy as the indicator arrives.
+  // Cross-fade a dark (on-lime) copy over a muted copy as the indicator arrives.
   const onIndicatorStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], index === 0 ? [1, 0] : [0, 1]),
   }));
@@ -75,7 +74,7 @@ function Segment({
     >
       <View style={styles.segmentContent}>{content(theme.colors.textSecondary)}</View>
       <Animated.View style={[styles.segmentContent, StyleSheet.absoluteFill, onIndicatorStyle]}>
-        {content('#FFFFFF')}
+        {content(theme.colors.onHighlight)}
       </Animated.View>
     </Pressable>
   );
@@ -100,7 +99,6 @@ export function EnvironmentSwitcher({ current }: { current: AppEnvironment }) {
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: progress.value * segmentWidth }],
   }));
-  const productivityFill = useAnimatedStyle(() => ({ opacity: 1 - progress.value }));
 
   const select = (to: AppEnvironment) => {
     if (to === current) return;
@@ -110,10 +108,6 @@ export function EnvironmentSwitcher({ current }: { current: AppEnvironment }) {
     switchTo(to);
   };
 
-  const gradient = (colors: GradientStops) => (
-    <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-  );
-
   return (
     <View
       onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
@@ -121,13 +115,9 @@ export function EnvironmentSwitcher({ current }: { current: AppEnvironment }) {
       style={[styles.track, { backgroundColor: theme.colors.surfaceMuted }]}
     >
       {segmentWidth > 0 ? (
-        <Animated.View style={[styles.indicator, { width: segmentWidth }, indicatorStyle]}>
-          {/* The indicator's colour follows the workspace it's heading to. */}
-          {gradient(theme.gradients.finance)}
-          <Animated.View style={[StyleSheet.absoluteFill, productivityFill]}>
-            {gradient(theme.gradients.primary)}
-          </Animated.View>
-        </Animated.View>
+        <Animated.View
+          style={[styles.indicator, { width: segmentWidth, backgroundColor: theme.colors.highlight }, indicatorStyle]}
+        />
       ) : null}
       <Segment
         label="Productivity"

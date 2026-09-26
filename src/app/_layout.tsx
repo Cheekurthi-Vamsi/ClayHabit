@@ -25,19 +25,27 @@ import { migrateDatabase } from '@/data/db/migrate';
 import { AuthGate } from '@/features/auth/auth-gate';
 import { AuthProvider } from '@/features/auth/auth-provider';
 import { CloudGate } from '@/features/cloud/cloud-gate';
+import { VaultGate } from '@/features/vault/vault-gate';
 import { AppLockGate } from '@/features/security/app-lock-gate';
 import { NotificationResponseHandler } from '@/features/tasks/notification-response-handler';
+import { UpdatePrompt } from '@/features/updates/update-prompt';
 import { queryClient } from '@/lib/query-client';
 import { configureNotificationHandler } from '@/lib/notifications/notification-service';
 import { useSettingsHydrated } from '@/store/settings-store';
+import type { DataKey } from '@/lib/vault/keyring';
+import { applyDatabaseKey } from '@/lib/vault/secure-database';
 import { AppThemeProvider, useAppTheme, useResolvedScheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 configureNotificationHandler();
 
+// The database is SQLCipher-encrypted: the key must be the first statement on the connection.
 // No sample data: a new account starts empty, and a returning one is restored from its Cloud.
-async function onInitDatabase(db: SQLiteDatabase) {
-  await migrateDatabase(db);
+function onInitDatabaseWith(dataKey: DataKey) {
+  return async (db: SQLiteDatabase) => {
+    await applyDatabaseKey(db, dataKey);
+    await migrateDatabase(db);
+  };
 }
 
 // Change events tell the Cloud sync when there is something new to save.
@@ -51,6 +59,8 @@ function RootNavigation() {
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <NotificationResponseHandler />
+      {/* Installed from GitHub Releases, not the Play Store: this says when a new version is out. */}
+      <UpdatePrompt />
       <AppLockGate>
         <Stack
           screenOptions={{
@@ -103,6 +113,7 @@ function RootNavigation() {
             options={{ presentation: 'modal', headerShown: true, title: 'New Event' }}
           />
           <Stack.Screen name="security/set-pin" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="security/change-passcode" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="dev/ui-showcase"
             options={{ headerShown: true, title: 'UI Showcase' }}
@@ -144,22 +155,27 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <AppThemeProvider>
-            {/* Signed out → sign-in screen. Signed in → that account's own database. */}
+            {/* Signed out → sign-in screen. Signed in → that account's own encrypted database. */}
             <AuthGate>
               {(databaseName) => (
-                <SQLiteProvider
-                  key={databaseName}
-                  databaseName={databaseName}
-                  options={DATABASE_OPTIONS}
-                  onInit={onInitDatabase}
-                >
-                  <QueryClientProvider client={queryClient}>
-                    {/* Connected Cloud (Google Drive) → data restored → app. */}
-                    <CloudGate>
-                      <RootNavigation />
-                    </CloudGate>
-                  </QueryClientProvider>
-                </SQLiteProvider>
+                // Where the data lives and the passcode that unlocks it, before anything is opened.
+                <VaultGate key={databaseName} databaseName={databaseName}>
+                  {(vault) => (
+                    <SQLiteProvider
+                      key={vault.databaseName}
+                      databaseName={vault.databaseName}
+                      options={DATABASE_OPTIONS}
+                      onInit={onInitDatabaseWith(vault.dataKey)}
+                    >
+                      <QueryClientProvider client={queryClient}>
+                        {/* Connected Cloud (Google Drive) → data restored → app. */}
+                        <CloudGate>
+                          <RootNavigation />
+                        </CloudGate>
+                      </QueryClientProvider>
+                    </SQLiteProvider>
+                  )}
+                </VaultGate>
               )}
             </AuthGate>
           </AppThemeProvider>

@@ -161,7 +161,7 @@ export function PlanDetailScreen() {
 
         <View style={styles.actions}>
           <View style={styles.flex}>
-            <Button label="Add money" icon="plus" fullWidth gradient={theme.gradients.finance} onPress={() => openEntry('deposit')} />
+            <Button label="Add money" icon="plus" fullWidth onPress={() => openEntry('deposit')} />
           </View>
           <View style={styles.flex}>
             <Button

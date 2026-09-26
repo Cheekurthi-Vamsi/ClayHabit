@@ -53,12 +53,13 @@ export async function ensureTaskReminderCategory(): Promise<void> {
     {
       identifier: 'complete',
       buttonTitle: 'Mark Done',
-      options: { opensAppToForeground: false },
+      // Opens the app, so App Lock (when on) is passed before anything changes.
+      options: { opensAppToForeground: true },
     },
     {
       identifier: 'snooze',
       buttonTitle: 'Snooze 15m',
-      options: { opensAppToForeground: false },
+      options: { opensAppToForeground: true },
     },
   ]);
 }

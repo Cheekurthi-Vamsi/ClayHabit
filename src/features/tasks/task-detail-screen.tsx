@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Alert, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, Chip, Icon, IconButton, Skeleton, Text } from '@/components/ui';
+import { AppleCalendarPicker, Button, Card, Chip, Icon, IconButton, Skeleton, Text } from '@/components/ui';
 import type { RepeatRule, TaskPriority, TaskWithDetails } from '@/domain/entities/task';
 import { notificationsUnsupported } from '@/lib/notifications/expo-go-guard';
 import { useAppTheme } from '@/theme';
-import { formatTime12h, todayIso } from '@/utils/date';
+import { formatTime12h, todayIso, toTimeString } from '@/utils/date';
 
 import { useGoals } from '../goals/hooks';
 import { useContributionGrid, useSeriesStreak } from '../streaks/hooks';
@@ -98,10 +97,6 @@ function timeStringToDate(time: string): Date {
   return date;
 }
 
-function dateToTimeString(date: Date): string {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
 function ReminderSection({ task }: { task: TaskWithDetails }) {
   const setReminder = useSetReminder();
   const [showPicker, setShowPicker] = useState(false);
@@ -133,20 +128,6 @@ function ReminderSection({ task }: { task: TaskWithDetails }) {
     );
   };
 
-  const openPicker = () => {
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        mode: 'time',
-        value: timeStringToDate(currentTime),
-        onChange: (event, date) => {
-          if (event.type === 'set' && date) commit(dateToTimeString(date));
-        },
-      });
-      return;
-    }
-    setShowPicker(true);
-  };
-
   return (
     <Section title="Reminder">
       <View style={styles.chipRow}>
@@ -159,23 +140,22 @@ function ReminderSection({ task }: { task: TaskWithDetails }) {
           label={task.reminderEnabled ? `On · ${formatTime12h(currentTime)}` : 'On'}
           selected={task.reminderEnabled}
           icon="bell"
-          onPress={openPicker}
+          onPress={() => setShowPicker(true)}
         />
+        {task.reminderEnabled ? (
+          <Chip label="Change time" icon="clock" selected={false} onPress={() => setShowPicker(true)} />
+        ) : null}
       </View>
 
-      {Platform.OS === 'ios' && showPicker && (
-        <View style={{ gap: 8 }}>
-          <DateTimePicker
-            mode="time"
-            display="spinner"
-            value={timeStringToDate(currentTime)}
-            onChange={(_event, date) => {
-              if (date) commit(dateToTimeString(date));
-            }}
-          />
-          <Button label="Done" variant="outline" onPress={() => setShowPicker(false)} />
-        </View>
-      )}
+      <AppleCalendarPicker
+        visible={showPicker}
+        mode="time"
+        title="Remind me at"
+        initialValue={timeStringToDate(currentTime)}
+        confirmLabel="Set reminder"
+        onClose={() => setShowPicker(false)}
+        onConfirm={(value) => commit(toTimeString(value))}
+      />
     </Section>
   );
 }

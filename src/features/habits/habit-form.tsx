@@ -260,7 +260,7 @@ export function HabitForm({
         label={submitLabel}
         icon="check"
         fullWidth
-        gradient={habitPalette[color].gradient}
+       
         disabled={!canSubmit}
         loading={submitting}
         onPress={() =>

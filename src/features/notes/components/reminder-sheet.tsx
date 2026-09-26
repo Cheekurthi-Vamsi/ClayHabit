@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { BottomSheet, Button, Icon, Text, type IconName } from '@/components/ui';
+import { AppleCalendarPicker, BottomSheet, Button, Icon, Text, type IconName } from '@/components/ui';
 import { useAppTheme } from '@/theme';
 
 interface Preset {
@@ -35,41 +34,16 @@ interface ReminderSheetProps {
   onPick: (date: Date | null) => void;
 }
 
-/** "Remind me about this note" — presets, a custom date and time, or remove the reminder. */
+/** "Remind me about this note" — presets, any date and time you like (12- or 24-hour), or remove the reminder. */
 export function ReminderSheet({ visible, current, onClose, onPick }: ReminderSheetProps) {
   const theme = useAppTheme();
-  const [custom, setCustom] = useState<Date | null>(null);
+  const [picking, setPicking] = useState(false);
   const now = new Date();
-
-  const pickCustomAndroid = (close: (then?: () => void) => void) => {
-    const start = new Date(now.getTime() + 3_600_000);
-    DateTimePickerAndroid.open({
-      mode: 'date',
-      value: start,
-      minimumDate: now,
-      onChange: (event, date) => {
-        if (event.type !== 'set' || !date) return;
-        DateTimePickerAndroid.open({
-          mode: 'time',
-          value: start,
-          onChange: (timeEvent, time) => {
-            if (timeEvent.type !== 'set' || !time) return;
-            const chosen = new Date(date);
-            chosen.setHours(time.getHours(), time.getMinutes(), 0, 0);
-            if (chosen.getTime() > Date.now()) close(() => onPick(chosen));
-          },
-        });
-      },
-    });
-  };
 
   return (
     <BottomSheet
       visible={visible}
-      onClose={() => {
-        setCustom(null);
-        onClose();
-      }}
+      onClose={onClose}
       title="Remind me"
       subtitle={current ? `Set for ${new Date(current).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}` : undefined}
     >
@@ -92,7 +66,7 @@ export function ReminderSheet({ visible, current, onClose, onPick }: ReminderShe
               </Pressable>
             ))}
             <Pressable
-              onPress={() => (Platform.OS === 'android' ? pickCustomAndroid(close) : setCustom(new Date(now.getTime() + 3_600_000)))}
+              onPress={() => setPicking(true)}
               accessibilityRole="button"
               style={({ pressed }) => [
                 styles.row,
@@ -105,19 +79,6 @@ export function ReminderSheet({ visible, current, onClose, onPick }: ReminderShe
             </Pressable>
           </View>
 
-          {custom && Platform.OS === 'ios' ? (
-            <View style={styles.stack}>
-              <DateTimePicker
-                value={custom}
-                mode="datetime"
-                display="spinner"
-                minimumDate={now}
-                onChange={(_event, date) => date && setCustom(date)}
-              />
-              <Button label="Set reminder" fullWidth onPress={() => close(() => onPick(custom))} />
-            </View>
-          ) : null}
-
           {current ? (
             <Button
               label="Remove reminder"
@@ -127,6 +88,17 @@ export function ReminderSheet({ visible, current, onClose, onPick }: ReminderShe
               onPress={() => close(() => onPick(null))}
             />
           ) : null}
+
+          <AppleCalendarPicker
+            visible={picking}
+            mode="datetime"
+            title="Remind me on"
+            initialValue={current ? new Date(current) : undefined}
+            minimum={new Date()}
+            confirmLabel="Set reminder"
+            onClose={() => setPicking(false)}
+            onConfirm={(value) => close(() => onPick(value))}
+          />
         </View>
       )}
     </BottomSheet>

@@ -14,7 +14,7 @@ function toTag(row: TagRow): Tag {
   return { id: row.id, name: row.name, color: row.color, createdAt: row.created_at };
 }
 
-const TAG_PALETTE = ['#6F57F2', '#3A74E6', '#1792C4', '#1FA985', '#E08A12', '#DC5F84'];
+const TAG_PALETTE = ['#0A4174', '#49769F', '#4E8EA2', '#6EA2B3', '#3C84B5', '#6A8A1E'];
 
 export async function listAll(db: SQLiteDatabase): Promise<Tag[]> {
   const rows = await db.getAllAsync<TagRow>('SELECT * FROM tags ORDER BY name ASC');

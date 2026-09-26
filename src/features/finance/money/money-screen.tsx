@@ -360,7 +360,7 @@ export function MoneyScreen() {
                 />
               </View>
               <View style={styles.flex}>
-                <Button label="Show results" fullWidth gradient={theme.gradients.finance} onPress={() => close()} />
+                <Button label="Show results" fullWidth onPress={() => close()} />
               </View>
             </View>
           </View>

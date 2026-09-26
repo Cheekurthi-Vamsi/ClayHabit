@@ -129,7 +129,16 @@ export function useSetNoteFlag() {
   const db = useSQLiteContext();
   const invalidate = useInvalidateNotes();
   return useMutation({
-    mutationFn: ({ id, flag, value }: { id: string; flag: Flag; value: boolean }) => FLAG_SETTERS[flag](db, id, value),
+    mutationFn: async ({ id, flag, value }: { id: string; flag: Flag; value: boolean }) => {
+      await FLAG_SETTERS[flag](db, id, value);
+      if (flag !== 'locked') return;
+      // A pending reminder was scheduled with the old title; reschedule it so a
+      // locked note's title never shows up on the lock screen (and comes back once unlocked).
+      const note = await noteRepository.getById(db, id);
+      if (!note?.reminderAt || new Date(note.reminderAt).getTime() <= Date.now()) return;
+      await cancelNoteReminder(db, note);
+      await scheduleNoteReminder(db, note, new Date(note.reminderAt)).catch(() => false);
+    },
     onSuccess: invalidate,
   });
 }

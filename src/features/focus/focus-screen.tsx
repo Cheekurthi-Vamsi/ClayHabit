@@ -73,12 +73,13 @@ export function FocusScreen() {
 
   const handleStart = () => startFocus(plannedMinutes);
 
-  // "Start" on the dashboard's Focus card lands here with ?autostart=25 — begin immediately, once.
+  // "Start" on the dashboard's Focus card lands here with ?autostart=<minutes> — begin immediately, once.
   const { autostart } = useLocalSearchParams<{ autostart?: string }>();
   const autostarted = useRef(false);
   useEffect(() => {
     const minutes = Number(autostart);
-    if (autostarted.current || !Number.isFinite(minutes) || minutes <= 0) return;
+    // The param can arrive from an outside deep link, so only honour lengths Settings itself allows.
+    if (autostarted.current || !Number.isInteger(minutes) || minutes <= 0 || minutes > 240) return;
     autostarted.current = true;
     startFocus(minutes);
     // eslint-disable-next-line react-hooks/exhaustive-deps

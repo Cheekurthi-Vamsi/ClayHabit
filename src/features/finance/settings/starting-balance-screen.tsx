@@ -62,7 +62,7 @@ function StartingBalanceForm({ account }: { account: FinAccount }) {
           label="Save starting balance"
           icon="check"
           fullWidth
-          gradient={theme.gradients.finance}
+         
           loading={update.isPending}
           onPress={save}
         />

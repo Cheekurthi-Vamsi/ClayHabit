@@ -19,7 +19,7 @@ import { Text } from './text';
 
 const PARTICLES = 18;
 const DURATION = 1400;
-const PARTICLE_COLORS = ['#7258F5', '#3A74E6', '#27B893', '#F7C66B', '#E47A22'];
+const PARTICLE_COLORS = ['#0A4174', '#49769F', '#4E8EA2', '#7BBDE8', '#CFF400'];
 
 function Particle({ index }: { index: number }) {
   const progress = useSharedValue(0);
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 26,
     paddingVertical: 16,
     gap: 2,
-    shadowColor: '#5B4FE8',
+    shadowColor: '#0A4174',
     shadowOpacity: 0.4,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },

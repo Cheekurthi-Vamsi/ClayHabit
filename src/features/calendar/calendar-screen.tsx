@@ -3,12 +3,11 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Card, EmptyState, ErrorState, IconButton, Text } from '@/components/ui';
+import { CalendarMonth, Card, EmptyState, ErrorState, IconButton, Text } from '@/components/ui';
 import { useAppTheme } from '@/theme';
-import { formatTime12h, getMonthGridDates, todayIso } from '@/utils/date';
+import { formatTime12h, toLocalIsoDate, todayIso } from '@/utils/date';
 
 import { useEventsForRange, useTasksForRange } from './hooks';
-import { MonthGrid } from './month-grid';
 
 export function CalendarScreen() {
   const theme = useAppTheme();
@@ -21,9 +20,8 @@ export function CalendarScreen() {
   });
   const [selectedDate, setSelectedDate] = useState(todayIso());
 
-  const gridDates = useMemo(() => getMonthGridDates(cursor.year, cursor.month), [cursor]);
-  const rangeStart = gridDates[0];
-  const rangeEnd = gridDates[gridDates.length - 1];
+  const rangeStart = toLocalIsoDate(new Date(cursor.year, cursor.month, 1));
+  const rangeEnd = toLocalIsoDate(new Date(cursor.year, cursor.month + 1, 0));
 
   const { data: tasks, isError: tasksError, refetch: refetchTasks } = useTasksForRange(rangeStart, rangeEnd);
   const { data: events, isError: eventsError, refetch: refetchEvents } = useEventsForRange(rangeStart, rangeEnd);
@@ -38,12 +36,6 @@ export function CalendarScreen() {
   const dayTasks = (tasks ?? []).filter((task) => task.dueDate === selectedDate);
   const dayEvents = (events ?? []).filter((event) => event.date === selectedDate);
 
-  const handleChangeMonth = (delta: number) => {
-    setCursor((prev) => {
-      const date = new Date(prev.year, prev.month + delta, 1);
-      return { year: date.getFullYear(), month: date.getMonth() };
-    });
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -62,19 +54,24 @@ export function CalendarScreen() {
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + theme.spacing.huge }]}>
         <Card>
-          <MonthGrid
+          <CalendarMonth
             year={cursor.year}
             month={cursor.month}
-            selectedDate={selectedDate}
+            onChangeMonth={(year, month) => setCursor({ year, month })}
+            selected={selectedDate}
+            onSelect={setSelectedDate}
             markedDates={markedDates}
-            onSelectDate={setSelectedDate}
-            onChangeMonth={handleChangeMonth}
+            showThemeToggle
           />
         </Card>
 
         <View style={{ gap: 10 }}>
           <Text variant="labelLarge" color="textSecondary">
-            {selectedDate === todayIso() ? 'TODAY' : selectedDate.toUpperCase()}
+            {selectedDate === todayIso()
+              ? 'TODAY'
+              : new Date(`${selectedDate}T12:00:00`)
+                  .toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+                  .toUpperCase()}
           </Text>
 
           {(tasksError || eventsError) && (

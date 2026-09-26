@@ -1,0 +1,62 @@
+.rls {
+  display: inline-flex;
+  white-space: pre;
+}
+.rls__letter {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  /* Room for descenders so they aren't clipped. */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.rls__main {
+  display: inline-block;
+}
+.rls__twin {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* ---- The letter-swap navigation bar (m-random-letter-swap-1.tsx) ---------------------------
+   Transparent: the bar has no fill of its own; a soft glass pill holds the links so they stay
+   readable over whatever scrolls beneath. */
+
+.lsnav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 38%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 55%, transparent);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+}
+.lsnav__item {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  border: 1.5px solid transparent;
+  transition: color 180ms, background-color 180ms;
+}
+.lsnav__item:hover {
+  color: var(--color-text-primary);
+}
+.lsnav__item--active {
+  background: var(--color-highlight);
+  color: var(--color-on-highlight);
+  border-color: var(--ink);
+  box-shadow: 0 2px 0 var(--ink);
+}
+.lsnav__item--active:hover {
+  color: var(--color-on-highlight);
+}

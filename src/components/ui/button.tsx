@@ -1,17 +1,18 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { useAppTheme, type GradientStops } from '@/theme';
+import { useAppTheme } from '@/theme';
 
 import { CartoonPress, useInk } from './cartoon-press';
 import { Icon, type IconName } from './icon';
 import { Text } from './text';
 
 /**
- * - `dock`: violet → blue fill, white label — the primary action on a screen.
- * - `soft`: lavender fill, ink label — confident secondary actions.
- * - `outline`: surface fill, ink outline — neutral secondary actions.
+ * - `dock`: lime (#CFF400) fill, dark label — the primary action on a screen.
+ * - `soft`: pale lime fill, ink label — confident secondary actions.
+ * - `outline`: surface fill, ink outline — neutral secondary actions, and any
+ *   action sitting on a lime card.
  * - `danger`: red fill — destructive actions (delete, reset).
- * - `glass`: translucent white, for actions sitting on a gradient card.
+ * - `glass`: lime without the ink outline, for actions on a dark or gradient card.
  * - `ghost`: text-only, tertiary actions and links.
  *
  * All but glass/ghost are "cartoon" buttons: ink outline, a solid shadow
@@ -31,7 +32,6 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
-  gradient?: GradientStops;
   accessibilityHint?: string;
 }
 
@@ -51,7 +51,6 @@ export function Button({
   loading = false,
   disabled = false,
   fullWidth = false,
-  gradient,
   accessibilityHint,
 }: ButtonProps) {
   const theme = useAppTheme();
@@ -59,23 +58,26 @@ export function Button({
 
   const isInteractive = !disabled && !loading;
   const raised = variant !== 'glass' && variant !== 'ghost';
-  const onColor = variant === 'dock' || variant === 'danger' || variant === 'glass';
+  const lime = variant === 'dock' || variant === 'glass';
   const iconSize = size === 'sm' ? 16 : size === 'lg' ? 20 : 18;
 
-  const fill =
-    variant === 'dock'
-      ? (gradient ?? theme.gradients.primary)
-      : variant === 'danger'
-        ? theme.colors.error
-        : variant === 'soft'
-          ? theme.colors.primaryMuted
-          : variant === 'outline'
-            ? theme.colors.surface
-            : variant === 'glass'
-              ? 'rgba(255,255,255,0.22)'
-              : undefined;
+  const fill = lime
+    ? theme.colors.highlight
+    : variant === 'danger'
+      ? theme.colors.error
+      : variant === 'soft'
+        ? theme.colors.highlightMuted
+        : variant === 'outline'
+          ? theme.colors.surface
+          : undefined;
 
-  const contentColor = onColor ? '#FFFFFF' : variant === 'ghost' ? theme.colors.primary : theme.colors.textPrimary;
+  const contentColor = lime
+    ? theme.colors.onHighlight
+    : variant === 'danger'
+      ? '#FFFFFF'
+      : variant === 'ghost'
+        ? theme.colors.primary
+        : theme.colors.textPrimary;
 
   return (
     <CartoonPress
@@ -86,10 +88,10 @@ export function Button({
       haptic={variant === 'dock' ? 'medium' : 'light'}
       radius={theme.radii.full}
       fill={fill}
-      borderColor={variant === 'glass' ? 'rgba(255,255,255,0.45)' : ink}
-      pressedTint={onColor ? 'rgba(255,255,255,0.16)' : theme.colors.surfacePressed}
+      borderColor={ink}
+      pressedTint={lime ? 'rgba(20, 21, 18, 0.08)' : variant === 'danger' ? 'rgba(255,255,255,0.16)' : theme.colors.surfacePressed}
       style={fullWidth ? styles.fullWidth : styles.hug}
-      faceStyle={[styles.face, PADDING[size], variant === 'glass' ? styles.glassBorder : null]}
+      faceStyle={[styles.face, PADDING[size]]}
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ busy: loading }}
@@ -124,9 +126,6 @@ const styles = StyleSheet.create({
   face: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  glassBorder: {
-    borderWidth: 1,
   },
   content: {
     flexDirection: 'row',

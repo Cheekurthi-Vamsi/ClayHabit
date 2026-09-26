@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as Haptics from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -7,7 +6,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AmountField } from '@/components/finance/amount-field';
-import { Button, Chip, Icon, Skeleton, Text } from '@/components/ui';
+import { AppleCalendarPicker, Button, Chip, Icon, Skeleton, Text } from '@/components/ui';
 import { formatMoney } from '@/domain/finance/currency';
 import { PRIORITY_LABELS, type CategoryColor, type SavingsPlanWithProgress, type SavingsPriority } from '@/domain/finance/entities';
 import { formatMonthLabel, monthKeyOf } from '@/domain/finance/month';
@@ -56,21 +55,7 @@ function PlanForm({ existing, templateKey }: { existing?: SavingsPlanWithProgres
       ? projectSavings({ targetMinor, savedMinor: existing?.savedMinor ?? 0, targetDate, today }).requiredMonthlyMinor
       : null;
 
-  const pickDate = () => {
-    const initial = targetDate ? new Date(`${targetDate}T12:00:00`) : new Date(new Date().setMonth(new Date().getMonth() + 6));
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        mode: 'date',
-        value: initial,
-        minimumDate: new Date(),
-        onChange: (event, date) => {
-          if (event.type === 'set' && date) setTargetDate(toLocalIsoDate(date));
-        },
-      });
-    } else {
-      setTargetDate(toLocalIsoDate(initial));
-    }
-  };
+  const [pickingDate, setPickingDate] = useState(false);
 
   const applyTemplate = (key: string) => {
     const next = PLAN_TEMPLATES.find((item) => item.key === key);
@@ -182,20 +167,17 @@ function PlanForm({ existing, templateKey }: { existing?: SavingsPlanWithProgres
               label={targetDate ? formatMonthLabel(monthKeyOf(targetDate)) : 'Pick a date'}
               icon="calendar"
               selected={Boolean(targetDate)}
-              onPress={pickDate}
+              onPress={() => setPickingDate(true)}
             />
-            {Platform.OS === 'ios' && targetDate ? (
-              <DateTimePicker
-                mode="date"
-                display="compact"
-                value={new Date(`${targetDate}T12:00:00`)}
-                minimumDate={new Date()}
-                accentColor={theme.colors.finance}
-                onChange={(_event, date) => {
-                  if (date) setTargetDate(toLocalIsoDate(date));
-                }}
-              />
-            ) : null}
+            <AppleCalendarPicker
+              visible={pickingDate}
+              mode="date"
+              title="Reach it by"
+              initialValue={targetDate ? new Date(`${targetDate}T12:00:00`) : undefined}
+              minimum={new Date(`${todayIso()}T00:00:00`)}
+              onClose={() => setPickingDate(false)}
+              onConfirm={(date) => setTargetDate(toLocalIsoDate(date))}
+            />
           </View>
         </Field>
 
@@ -267,7 +249,7 @@ function PlanForm({ existing, templateKey }: { existing?: SavingsPlanWithProgres
           label={existing ? 'Save changes' : 'Create plan'}
           icon="check"
           fullWidth
-          gradient={theme.gradients.finance}
+         
           disabled={!name.trim() || !targetMinor}
           loading={saving}
           onPress={submit}
