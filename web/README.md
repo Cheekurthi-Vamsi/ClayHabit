@@ -19,7 +19,7 @@ npm test           # WebDatabase + phone↔web sync tests
 
 ## Configuration
 
-Keys come from the phone app's `../.env.local` (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`).
+Keys come from the repo root's `.env` / `.env.local` locally (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`). Env files are git-ignored, so on Vercel set both as Environment Variables.
 
 In Google Cloud Console, add each web origin (e.g. `http://localhost:5173` and your production domain) under **Authorized JavaScript origins** of the web OAuth client. Clerk's dev instance allows localhost; add production domains in the Clerk dashboard.
 

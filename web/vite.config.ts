@@ -62,6 +62,10 @@ ${gradientVars(gradients.dark)}
 
 export default defineConfig({
   plugins: [react(), designTokens()],
+  // One tsconfig for every file, including the shared ones in ../src. Otherwise those pick up the
+  // phone app's tsconfig, which extends expo/tsconfig.base: fine locally, missing on Vercel, where
+  // only web/ is installed.
+  tsconfig: root('./tsconfig.json'),
   // The phone app's .env.local: the same Clerk key and Google client ID serve both.
   envDir: root('..'),
   envPrefix: ['EXPO_PUBLIC_'],

@@ -36,8 +36,12 @@ yarn-error.*
 # IDE
 .idea/
 
-# local env files
-.env*.local
+# Env files: never committed, at any depth (.env, .env.local, .env.production, web/.env …).
+# Deploys get their values from Vercel's environment variables.
+.env
+.env.*
+**/.env
+**/.env.*
 
 # typescript
 *.tsbuildinfo

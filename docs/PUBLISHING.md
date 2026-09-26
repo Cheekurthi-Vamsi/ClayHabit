@@ -14,9 +14,13 @@ Do the one-time setup (sections 1–3) once. After that, each new version is sec
 ## 1. Put the website on Vercel (one time)
 
 1. Go to https://vercel.com, sign in with GitHub and choose **Add New… → Project**. Import `Cheekurthi-Vamsi/ClayHabit`.
-2. **Root Directory:** `web`. Leave **"Include files outside the root directory"** on: the web app shares code from `../src`.
+2. **Root Directory:** `web`. Leave **"Include files outside the root directory"** on: the web app shares code from `../src`. (Leaving Root Directory as the repository also works: the root `vercel.json` builds `web/`.)
 3. Vercel reads the rest from `web/vercel.json`: `npm ci`, `npm run build:deploy`, output `dist`, page routing and security headers.
-4. Environment variables: none are needed, because the build reads the root `.env`. That file holds the Clerk publishable key and the Google web client ID, and both are public identifiers. Later, to use different keys, add `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` / `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in Vercel → Settings → Environment Variables; they take priority.
+4. **Environment variables** (Settings → Environment Variables, for Production, Preview and Development). `.env` files are never committed, so Vercel needs these two:
+   - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`: the value from your local `.env`
+   - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: the value from your local `.env`
+
+   After adding or changing them, redeploy (Deployments → ⋯ → Redeploy), because they're baked in at build time.
 5. Click **Deploy**. You get an address like `https://clayhabit.vercel.app`, and every push to `main` redeploys.
 
 ## 2. Let people sign in (one time)
