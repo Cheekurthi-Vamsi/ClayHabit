@@ -77,7 +77,9 @@ On your Android phone and on the web, encrypted, and kept in your own Google Dri
 
 ### Android app
 
-Phone screenshots are on the way. They'll live in [`docs/screenshots/android/`](docs/screenshots/android/).
+| Sign in | Today | Notes | Money | Stats |
+| :---: | :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/android/sign-in.jpg" alt="Sign in with Google" width="170" /> | <img src="docs/screenshots/android/dashboard.jpg" alt="Today dashboard: streak, focus, today's target" width="170" /> | <img src="docs/screenshots/android/notes.jpg" alt="Notes" width="170" /> | <img src="docs/screenshots/android/finance.jpg" alt="Financial overview" width="170" /> | <img src="docs/screenshots/android/stats.jpg" alt="Stats: weekly rhythm, peak hours, priority mix" width="170" /> |
 
 ## What's inside
 

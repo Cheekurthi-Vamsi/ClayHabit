@@ -2,16 +2,12 @@
 
 Screenshots of the ClayHabbit phone app, shown in the main README.
 
-Add PNG or JPG screenshots taken on a phone here, named after the screen:
-
 | File | Screen |
 | --- | --- |
-| `dashboard.png` | Today (dashboard) |
-| `habits.png` | Habits with the heatmap |
-| `tasks.png` | Tasks |
-| `notes.png` | Notes |
-| `money.png` | Money (finance) |
-| `focus.png` | Focus timer |
-| `settings.png` | Settings / Cloud |
+| `sign-in.jpg` | Sign in with Google |
+| `dashboard.jpg` | Today: streak, focus, today's target, tasks |
+| `notes.jpg` | Notes |
+| `finance.jpg` | Money: financial overview |
+| `stats.jpg` | Stats: weekly rhythm, peak hours, priority mix |
 
-Other names are fine too; the README gallery lists whichever files are here.
+To add more, save them here and add them to the Android table in the main README.
